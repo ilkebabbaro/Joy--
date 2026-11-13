@@ -8,6 +8,7 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 - Esempio `examples/livello1_motion.joy`: sigla di motion graphics "JOY++" di 6 secondi (19 attori), stress test creativo delle sole funzioni della v0.1.
+- Roadmap v0.2: `docs/BACKLOG_V02.md` (esito dello stress test) e `SPECIFICA.md` Appendice B (stato iniziale, entra da/esce verso, gruppi, orbita, cambia colore, mini-player, avvisi).
 
 ## [0.1.0] - 2026-11-13
 
