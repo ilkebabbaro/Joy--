@@ -10,6 +10,13 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 - Esempio `examples/cattedrale.joy`: stress test 4K (3840×2160, 60 fps) di 30 s con 164 attori e 5 atti.
 - Esempio `examples/JOYPP_VOXEL_OVERDRIVE_v021.joy`: stress test 4K (3840×2160, 60 fps) di 48 s, geometria pseudo-voxel con gruppi, orbite e HUD.
 - Nuova versione di `examples/sfida_hyperframe_20s.joy`: sfida "Astrolabio" 4K (3840×2160, 60 fps) di circa 14 s.
+- `joypp render --profilo` (rapporto di diagnostica su stderr) e `joypp render --profilo-json <file>` (rapporto JSON `joypp-profilo/1`): misurano i costi della pipeline MP4 (fasi, fotogrammi, ffmpeg, memoria stimata). Senza le opzioni il render è invariato. Specifica in SPECIFICA C.1.
+- Baseline delle prestazioni del render in `benches/README.md`.
+
+### Sicurezza
+- `--profilo-json` confronta il percorso con sorgente e video in modo lessicale e canonico: il JSON non può sovrascrivere il video né il sorgente.
+- Il JSON è scritto in modo atomico (`<file>.joypp-parziale`, poi rinomina); il parziale viene rimosso in caso di errore.
+- Il profilo non contiene percorsi di file né di eseguibili.
 
 ## [0.2.1] - 2026-11-13
 

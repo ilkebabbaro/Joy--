@@ -1551,3 +1551,12 @@ righe stimate dicono esplicitamente «(stima)»; quelle non disponibili «non di
   `joypp-profilo/1`;
 * nessun `<file>.joypp-parziale` residuo, né dopo un render riuscito né dopo un errore di scrittura del
   JSON (per esempio una destinazione non scrivibile).
+
+#### C.1.8 Limiti noti (revisione `@security`, v0.2.2)
+* **R1.** Il parziale `<file>.joypp-parziale` segue i symlink e può troncare un file omonimo
+  dell'utente, come già avviene per `-o`. Da risolvere in Fase 4.
+* **R2.** I nomi riservati di Windows (`NUL`, `CON`) non sono intercettati prima del render. L'errore
+  compare a fine render con exit 1, e il video resta intatto.
+* **R3.** I permessi di scrittura del percorso JSON non sono verificati prima del render.
+* **A1.** `json::stringa` non applica l'escape a `<` né a U+2028/U+2029. Il JSON del profilo quindi non
+  va incorporato in HTML senza un escape proprio.
