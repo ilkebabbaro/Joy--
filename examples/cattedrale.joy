@@ -1,0 +1,1126 @@
+# ============================================================================
+# CATTEDRALE ORBITALE DEI DATI — STRESS TEST 4K 60 FPS (30 SECONDI)
+# Target: JOY++ v0.2.1 | 3840x2160 @ 60fps | 164 attori | 5 Atti
+# ============================================================================
+
+Prepara un palco grande 3840 per 2160 con sfondo #05070D a 60 fotogrammi.
+
+# --- GRIGLIA ARCHITETTONICA (36 linee) ---
+Crea un rettangolo chiamato "griglia_v_00" con larghezza 1, altezza 2160 e colore #11192E a 96.5, 1080.
+Crea un rettangolo chiamato "griglia_v_01" con larghezza 1, altezza 2160 e colore #11192E a 288.5, 1080.
+Crea un rettangolo chiamato "griglia_v_02" con larghezza 1, altezza 2160 e colore #11192E a 480.5, 1080.
+Crea un rettangolo chiamato "griglia_v_03" con larghezza 1, altezza 2160 e colore #11192E a 672.5, 1080.
+Crea un rettangolo chiamato "griglia_v_04" con larghezza 1, altezza 2160 e colore #11192E a 864.5, 1080.
+Crea un rettangolo chiamato "griglia_v_05" con larghezza 1, altezza 2160 e colore #11192E a 1056.5, 1080.
+Crea un rettangolo chiamato "griglia_v_06" con larghezza 1, altezza 2160 e colore #11192E a 1248.5, 1080.
+Crea un rettangolo chiamato "griglia_v_07" con larghezza 1, altezza 2160 e colore #11192E a 1440.5, 1080.
+Crea un rettangolo chiamato "griglia_v_08" con larghezza 1, altezza 2160 e colore #11192E a 1632.5, 1080.
+Crea un rettangolo chiamato "griglia_v_09" con larghezza 1, altezza 2160 e colore #11192E a 1824.5, 1080.
+Crea un rettangolo chiamato "griglia_v_10" con larghezza 1, altezza 2160 e colore #11192E a 2016.5, 1080.
+Crea un rettangolo chiamato "griglia_v_11" con larghezza 1, altezza 2160 e colore #11192E a 2208.5, 1080.
+Crea un rettangolo chiamato "griglia_v_12" con larghezza 1, altezza 2160 e colore #11192E a 2400.5, 1080.
+Crea un rettangolo chiamato "griglia_v_13" con larghezza 1, altezza 2160 e colore #11192E a 2592.5, 1080.
+Crea un rettangolo chiamato "griglia_v_14" con larghezza 1, altezza 2160 e colore #11192E a 2784.5, 1080.
+Crea un rettangolo chiamato "griglia_v_15" con larghezza 1, altezza 2160 e colore #11192E a 2976.5, 1080.
+Crea un rettangolo chiamato "griglia_v_16" con larghezza 1, altezza 2160 e colore #11192E a 3168.5, 1080.
+Crea un rettangolo chiamato "griglia_v_17" con larghezza 1, altezza 2160 e colore #11192E a 3360.5, 1080.
+Crea un rettangolo chiamato "griglia_v_18" con larghezza 1, altezza 2160 e colore #11192E a 3552.5, 1080.
+Crea un rettangolo chiamato "griglia_v_19" con larghezza 1, altezza 2160 e colore #11192E a 3744.5, 1080.
+
+Crea un rettangolo chiamato "griglia_h_00" con larghezza 3840, altezza 1 e colore #11192E a 1920, 67.5.
+Crea un rettangolo chiamato "griglia_h_01" con larghezza 3840, altezza 1 e colore #11192E a 1920, 202.5.
+Crea un rettangolo chiamato "griglia_h_02" con larghezza 3840, altezza 1 e colore #11192E a 1920, 337.5.
+Crea un rettangolo chiamato "griglia_h_03" con larghezza 3840, altezza 1 e colore #11192E a 1920, 472.5.
+Crea un rettangolo chiamato "griglia_h_04" con larghezza 3840, altezza 1 e colore #11192E a 1920, 607.5.
+Crea un rettangolo chiamato "griglia_h_05" con larghezza 3840, altezza 1 e colore #11192E a 1920, 742.5.
+Crea un rettangolo chiamato "griglia_h_06" con larghezza 3840, altezza 1 e colore #11192E a 1920, 877.5.
+Crea un rettangolo chiamato "griglia_h_07" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1012.5.
+Crea un rettangolo chiamato "griglia_h_08" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1147.5.
+Crea un rettangolo chiamato "griglia_h_09" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1282.5.
+Crea un rettangolo chiamato "griglia_h_10" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1417.5.
+Crea un rettangolo chiamato "griglia_h_11" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1552.5.
+Crea un rettangolo chiamato "griglia_h_12" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1687.5.
+Crea un rettangolo chiamato "griglia_h_13" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1822.5.
+Crea un rettangolo chiamato "griglia_h_14" con larghezza 3840, altezza 1 e colore #11192E a 1920, 1957.5.
+Crea un rettangolo chiamato "griglia_h_15" con larghezza 3840, altezza 1 e colore #11192E a 1920, 2092.5.
+
+# --- ASSI CARDINALI & FASCI DIAGONALI ---
+Crea un rettangolo chiamato "asse_nord" con larghezza 4, altezza 740 e colore #1E3A5F a 1920, 490.
+Crea un rettangolo chiamato "asse_sud" con larghezza 4, altezza 740 e colore #1E3A5F a 1920, 1670.
+Crea un rettangolo chiamato "asse_ovest" con larghezza 1440, altezza 4 e colore #1E3A5F a 980, 1080.
+Crea un rettangolo chiamato "asse_est" con larghezza 1440, altezza 4 e colore #1E3A5F a 2860, 1080.
+
+Crea un rettangolo chiamato "fascio_diag_1" con larghezza 4640, altezza 8, colore #00F5D4, rotazione 28 e opacità 0 al centro.
+Crea un rettangolo chiamato "fascio_diag_2" con larghezza 4640, altezza 8, colore #FF2A85, rotazione -28 e opacità 0 al centro.
+Crea un rettangolo chiamato "fascio_diag_3" con larghezza 4640, altezza 4, colore #38BDF8, rotazione 14 e opacità 0 al centro.
+Crea un rettangolo chiamato "fascio_diag_4" con larghezza 4640, altezza 4, colore #F59E0B, rotazione -14 e opacità 0 al centro.
+
+# --- 6 ANELLI CONCENTRICI ---
+Crea un cerchio chiamato "anello_1" con raggio 180, colore trasparente, bordo 3 #38BDF8 e scala 0.85 al centro.
+Crea un cerchio chiamato "anello_2" con raggio 310, colore trasparente, bordo 2 #1D4ED8 e scala 0.85 al centro.
+Crea un cerchio chiamato "anello_3" con raggio 460, colore trasparente, bordo 3 #00F5D4 e scala 0.85 al centro.
+Crea un cerchio chiamato "anello_4" con raggio 620, colore trasparente, bordo 2 #6366F1 e scala 0.85 al centro.
+Crea un cerchio chiamato "anello_5" con raggio 790, colore trasparente, bordo 2 #EC4899 e scala 0.85 al centro.
+Crea un cerchio chiamato "anello_6" con raggio 960, colore trasparente, bordo 4 #1E293B e scala 0.85 al centro.
+
+# --- SISTEMA ORBITALE GERARCHICO (GRUPPI ANNIDATI SU 3 LIVELLI) ---
+# Satellite 0: CORE-01 (2380, 1080)
+Crea un cerchio chiamato "sat_0_corpo" con raggio 18, colore #00F5D4 e bordo 2 bianco a 2380, 1080.
+Crea un testo chiamato "sat_0_etichetta" con testo "CORE-01", grandezza 20, peso grassetto e colore #00F5D4 a destra di "sat_0_corpo" di 75.
+Crea un cerchio chiamato "sat_0_luna_0" con raggio 5 e colore #E2E8F0 a 2424, 1080.
+Crea un cerchio chiamato "sat_0_luna_1" con raggio 7 e colore #E2E8F0 a 2353, 1127.
+Crea un cerchio chiamato "sat_0_luna_2" con raggio 5 e colore #E2E8F0 a 2348, 1025.
+Crea un gruppo chiamato "sat_0_gruppo" con "sat_0_corpo", "sat_0_etichetta", "sat_0_luna_0", "sat_0_luna_1" e "sat_0_luna_2".
+
+# Satellite 1: SYNC-02 (2245, 1405)
+Crea un cerchio chiamato "sat_1_corpo" con raggio 18, colore #38BDF8 e bordo 2 bianco a 2245, 1405.
+Crea un testo chiamato "sat_1_etichetta" con testo "SYNC-02", grandezza 20, peso grassetto e colore #38BDF8 a destra di "sat_1_corpo" di 75.
+Crea un cerchio chiamato "sat_1_luna_0" con raggio 5 e colore #E2E8F0 a 2289, 1405.
+Crea un cerchio chiamato "sat_1_luna_1" con raggio 7 e colore #E2E8F0 a 2218, 1452.
+Crea un cerchio chiamato "sat_1_luna_2" con raggio 5 e colore #E2E8F0 a 2213, 1350.
+Crea un gruppo chiamato "sat_1_gruppo" con "sat_1_corpo", "sat_1_etichetta", "sat_1_luna_0", "sat_1_luna_1" e "sat_1_luna_2".
+
+# Satellite 2: NODE-03 (1920, 1540)
+Crea un cerchio chiamato "sat_2_corpo" con raggio 18, colore #818CF8 e bordo 2 bianco a 1920, 1540.
+Crea un testo chiamato "sat_2_etichetta" con testo "NODE-03", grandezza 20, peso grassetto e colore #818CF8 a destra di "sat_2_corpo" di 75.
+Crea un cerchio chiamato "sat_2_luna_0" con raggio 5 e colore #E2E8F0 a 1964, 1540.
+Crea un cerchio chiamato "sat_2_luna_1" con raggio 7 e colore #E2E8F0 a 1893, 1587.
+Crea un cerchio chiamato "sat_2_luna_2" con raggio 5 e colore #E2E8F0 a 1888, 1485.
+Crea un gruppo chiamato "sat_2_gruppo" con "sat_2_corpo", "sat_2_etichetta", "sat_2_luna_0", "sat_2_luna_1" e "sat_2_luna_2".
+
+# Satellite 3: FLUX-04 (1595, 1405)
+Crea un cerchio chiamato "sat_3_corpo" con raggio 18, colore #C084FC e bordo 2 bianco a 1595, 1405.
+Crea un testo chiamato "sat_3_etichetta" con testo "FLUX-04", grandezza 20, peso grassetto e colore #C084FC a destra di "sat_3_corpo" di 75.
+Crea un cerchio chiamato "sat_3_luna_0" con raggio 5 e colore #E2E8F0 a 1639, 1405.
+Crea un cerchio chiamato "sat_3_luna_1" con raggio 7 e colore #E2E8F0 a 1568, 1452.
+Crea un cerchio chiamato "sat_3_luna_2" con raggio 5 e colore #E2E8F0 a 1563, 1350.
+Crea un gruppo chiamato "sat_3_gruppo" con "sat_3_corpo", "sat_3_etichetta", "sat_3_luna_0", "sat_3_luna_1" e "sat_3_luna_2".
+
+# Satellite 4: GRID-05 (1300, 1080)
+Crea un cerchio chiamato "sat_4_corpo" con raggio 18, colore #F472B6 e bordo 2 bianco a 1300, 1080.
+Crea un testo chiamato "sat_4_etichetta" con testo "GRID-05", grandezza 20, peso grassetto e colore #F472B6 a destra di "sat_4_corpo" di 75.
+Crea un cerchio chiamato "sat_4_luna_0" con raggio 5 e colore #E2E8F0 a 1344, 1080.
+Crea un cerchio chiamato "sat_4_luna_1" con raggio 7 e colore #E2E8F0 a 1273, 1127.
+Crea un cerchio chiamato "sat_4_luna_2" con raggio 5 e colore #E2E8F0 a 1268, 1025.
+Crea un gruppo chiamato "sat_4_gruppo" con "sat_4_corpo", "sat_4_etichetta", "sat_4_luna_0", "sat_4_luna_1" e "sat_4_luna_2".
+
+# Satellite 5: EDGE-06 (1482, 642)
+Crea un cerchio chiamato "sat_5_corpo" con raggio 18, colore #FB7185 e bordo 2 bianco a 1482, 642.
+Crea un testo chiamato "sat_5_etichetta" con testo "EDGE-06", grandezza 20, peso grassetto e colore #FB7185 a destra di "sat_5_corpo" di 75.
+Crea un cerchio chiamato "sat_5_luna_0" con raggio 5 e colore #E2E8F0 a 1526, 642.
+Crea un cerchio chiamato "sat_5_luna_1" con raggio 7 e colore #E2E8F0 a 1455, 689.
+Crea un cerchio chiamato "sat_5_luna_2" con raggio 5 e colore #E2E8F0 a 1450, 587.
+Crea un gruppo chiamato "sat_5_gruppo" con "sat_5_corpo", "sat_5_etichetta", "sat_5_luna_0", "sat_5_luna_1" e "sat_5_luna_2".
+
+# Satellite 6: WAVE-07 (1920, 460)
+Crea un cerchio chiamato "sat_6_corpo" con raggio 18, colore #FBBF24 e bordo 2 bianco a 1920, 460.
+Crea un testo chiamato "sat_6_etichetta" con testo "WAVE-07", grandezza 20, peso grassetto e colore #FBBF24 a destra di "sat_6_corpo" di 75.
+Crea un cerchio chiamato "sat_6_luna_0" con raggio 5 e colore #E2E8F0 a 1964, 460.
+Crea un cerchio chiamato "sat_6_luna_1" con raggio 7 e colore #E2E8F0 a 1893, 507.
+Crea un cerchio chiamato "sat_6_luna_2" con raggio 5 e colore #E2E8F0 a 1888, 405.
+Crea un gruppo chiamato "sat_6_gruppo" con "sat_6_corpo", "sat_6_etichetta", "sat_6_luna_0", "sat_6_luna_1" e "sat_6_luna_2".
+
+# Satellite 7: ZERO-08 (2358, 642)
+Crea un cerchio chiamato "sat_7_corpo" con raggio 18, colore #34D399 e bordo 2 bianco a 2358, 642.
+Crea un testo chiamato "sat_7_etichetta" con testo "ZERO-08", grandezza 20, peso grassetto e colore #34D399 a destra di "sat_7_corpo" di 75.
+Crea un cerchio chiamato "sat_7_luna_0" con raggio 5 e colore #E2E8F0 a 2402, 642.
+Crea un cerchio chiamato "sat_7_luna_1" con raggio 7 e colore #E2E8F0 a 2331, 689.
+Crea un cerchio chiamato "sat_7_luna_2" con raggio 5 e colore #E2E8F0 a 2326, 587.
+Crea un gruppo chiamato "sat_7_gruppo" con "sat_7_corpo", "sat_7_etichetta", "sat_7_luna_0", "sat_7_luna_1" e "sat_7_luna_2".
+
+Crea un gruppo chiamato "sistema_orbitale" con "sat_0_gruppo", "sat_1_gruppo", "sat_2_gruppo", "sat_3_gruppo", "sat_4_gruppo", "sat_5_gruppo", "sat_6_gruppo" e "sat_7_gruppo".
+
+# --- NUCLEO CENTRALE ---
+Crea un cerchio chiamato "nucleo_alone" con raggio 115, colore #00F5D4, scala 0.4 e opacità 0 al centro.
+Crea un cerchio chiamato "nucleo_anello" con raggio 72, colore trasparente, bordo 4 bianco, scala 0.5 e opacità 0 al centro.
+Crea un cerchio chiamato "nucleo_cuore" con raggio 42, colore bianco e scala 0.2 al centro.
+
+# --- 60 PACCHETTI DATI IN FLUSSO ---
+Crea un quadrato chiamato "pkt_00" con lato 10, colore #00F5D4 e opacità 0 a 185, 365.
+Crea un quadrato chiamato "pkt_01" con lato 10, colore #38BDF8 e opacità 0 a 230, 413.
+Crea un quadrato chiamato "pkt_02" con lato 10, colore #00F5D4 e opacità 0 a 275, 461.
+Crea un quadrato chiamato "pkt_03" con lato 10, colore #38BDF8 e opacità 0 a 320, 509.
+Crea un quadrato chiamato "pkt_04" con lato 10, colore #00F5D4 e opacità 0 a 365, 557.
+Crea un quadrato chiamato "pkt_05" con lato 10, colore #38BDF8 e opacità 0 a 410, 605.
+Crea un quadrato chiamato "pkt_06" con lato 10, colore #00F5D4 e opacità 0 a 185, 653.
+Crea un quadrato chiamato "pkt_07" con lato 10, colore #38BDF8 e opacità 0 a 230, 701.
+Crea un quadrato chiamato "pkt_08" con lato 10, colore #00F5D4 e opacità 0 a 275, 749.
+Crea un quadrato chiamato "pkt_09" con lato 10, colore #38BDF8 e opacità 0 a 320, 797.
+Crea un quadrato chiamato "pkt_10" con lato 10, colore #00F5D4 e opacità 0 a 365, 845.
+Crea un quadrato chiamato "pkt_11" con lato 10, colore #38BDF8 e opacità 0 a 410, 893.
+Crea un quadrato chiamato "pkt_12" con lato 10, colore #00F5D4 e opacità 0 a 185, 941.
+Crea un quadrato chiamato "pkt_13" con lato 10, colore #38BDF8 e opacità 0 a 230, 989.
+Crea un quadrato chiamato "pkt_14" con lato 10, colore #00F5D4 e opacità 0 a 275, 1037.
+Crea un quadrato chiamato "pkt_15" con lato 10, colore #38BDF8 e opacità 0 a 320, 1085.
+Crea un quadrato chiamato "pkt_16" con lato 10, colore #00F5D4 e opacità 0 a 365, 1133.
+Crea un quadrato chiamato "pkt_17" con lato 10, colore #38BDF8 e opacità 0 a 410, 1181.
+Crea un quadrato chiamato "pkt_18" con lato 10, colore #00F5D4 e opacità 0 a 185, 1229.
+Crea un quadrato chiamato "pkt_19" con lato 10, colore #38BDF8 e opacità 0 a 230, 1277.
+Crea un quadrato chiamato "pkt_20" con lato 10, colore #00F5D4 e opacità 0 a 275, 1325.
+Crea un quadrato chiamato "pkt_21" con lato 10, colore #38BDF8 e opacità 0 a 320, 1373.
+Crea un quadrato chiamato "pkt_22" con lato 10, colore #00F5D4 e opacità 0 a 365, 1421.
+Crea un quadrato chiamato "pkt_23" con lato 10, colore #38BDF8 e opacità 0 a 410, 1469.
+Crea un quadrato chiamato "pkt_24" con lato 10, colore #00F5D4 e opacità 0 a 185, 1517.
+Crea un quadrato chiamato "pkt_25" con lato 10, colore #38BDF8 e opacità 0 a 230, 1565.
+Crea un quadrato chiamato "pkt_26" con lato 10, colore #00F5D4 e opacità 0 a 275, 1613.
+Crea un quadrato chiamato "pkt_27" con lato 10, colore #38BDF8 e opacità 0 a 320, 1661.
+Crea un quadrato chiamato "pkt_28" con lato 10, colore #00F5D4 e opacità 0 a 365, 1709.
+Crea un quadrato chiamato "pkt_29" con lato 10, colore #38BDF8 e opacità 0 a 410, 1757.
+
+Crea un quadrato chiamato "pkt_30" con lato 10, colore #F472B6 e opacità 0 a 1125, 185.
+Crea un quadrato chiamato "pkt_31" con lato 10, colore #FBBF24 e opacità 0 a 1179, 225.
+Crea un quadrato chiamato "pkt_32" con lato 10, colore #F472B6 e opacità 0 a 1233, 265.
+Crea un quadrato chiamato "pkt_33" con lato 10, colore #FBBF24 e opacità 0 a 1287, 305.
+Crea un quadrato chiamato "pkt_34" con lato 10, colore #F472B6 e opacità 0 a 1341, 345.
+Crea un quadrato chiamato "pkt_35" con lato 10, colore #FBBF24 e opacità 0 a 1395, 185.
+Crea un quadrato chiamato "pkt_36" con lato 10, colore #F472B6 e opacità 0 a 1449, 225.
+Crea un quadrato chiamato "pkt_37" con lato 10, colore #FBBF24 e opacità 0 a 1503, 265.
+Crea un quadrato chiamato "pkt_38" con lato 10, colore #F472B6 e opacità 0 a 1557, 305.
+Crea un quadrato chiamato "pkt_39" con lato 10, colore #FBBF24 e opacità 0 a 1611, 345.
+Crea un quadrato chiamato "pkt_40" con lato 10, colore #F472B6 e opacità 0 a 1665, 185.
+Crea un quadrato chiamato "pkt_41" con lato 10, colore #FBBF24 e opacità 0 a 1719, 225.
+Crea un quadrato chiamato "pkt_42" con lato 10, colore #F472B6 e opacità 0 a 1773, 265.
+Crea un quadrato chiamato "pkt_43" con lato 10, colore #FBBF24 e opacità 0 a 1827, 305.
+Crea un quadrato chiamato "pkt_44" con lato 10, colore #F472B6 e opacità 0 a 1881, 345.
+Crea un quadrato chiamato "pkt_45" con lato 10, colore #FBBF24 e opacità 0 a 1935, 185.
+Crea un quadrato chiamato "pkt_46" con lato 10, colore #F472B6 e opacità 0 a 1989, 225.
+Crea un quadrato chiamato "pkt_47" con lato 10, colore #FBBF24 e opacità 0 a 2043, 265.
+Crea un quadrato chiamato "pkt_48" con lato 10, colore #F472B6 e opacità 0 a 2097, 305.
+Crea un quadrato chiamato "pkt_49" con lato 10, colore #FBBF24 e opacità 0 a 2151, 345.
+Crea un quadrato chiamato "pkt_50" con lato 10, colore #F472B6 e opacità 0 a 2205, 185.
+Crea un quadrato chiamato "pkt_51" con lato 10, colore #FBBF24 e opacità 0 a 2259, 225.
+Crea un quadrato chiamato "pkt_52" con lato 10, colore #F472B6 e opacità 0 a 2313, 265.
+Crea un quadrato chiamato "pkt_53" con lato 10, colore #FBBF24 e opacità 0 a 2367, 305.
+Crea un quadrato chiamato "pkt_54" con lato 10, colore #F472B6 e opacità 0 a 2421, 345.
+Crea un quadrato chiamato "pkt_55" con lato 10, colore #FBBF24 e opacità 0 a 2475, 185.
+Crea un quadrato chiamato "pkt_56" con lato 10, colore #F472B6 e opacità 0 a 2529, 225.
+Crea un quadrato chiamato "pkt_57" con lato 10, colore #FBBF24 e opacità 0 a 2583, 265.
+Crea un quadrato chiamato "pkt_58" con lato 10, colore #F472B6 e opacità 0 a 2637, 305.
+Crea un quadrato chiamato "pkt_59" con lato 10, colore #FBBF24 e opacità 0 a 2691, 345.
+
+# --- PANNELLO SINISTRO: SISTEMA CLASSICO ---
+Crea un rettangolo chiamato "pan_sx_bg" con larghezza 760, altezza 1480, colore #0B101D, bordo 2 #334155 e arrotondamento 16 a 500, 1080.
+Crea un rettangolo chiamato "pan_sx_header" con larghezza 760, altezza 84, colore #1E293B e arrotondamento 16 a 500, 382.
+Crea un titolo chiamato "pan_sx_titolo" con testo "SISTEMA CLASSICO", grandezza 32, peso grassetto e colore #94A3B8 a 350, 382.
+Crea un testo chiamato "pan_sx_r_0" con testo "• 142 timeline manuali scollegate", grandezza 24 e colore #CBD5E1 a 390, 495.
+Crea un testo chiamato "pan_sx_r_1" con testo "• Keyframe duplicati per ogni nodo", grandezza 24 e colore #CBD5E1 a 390, 583.
+Crea un testo chiamato "pan_sx_r_2" con testo "• Nessun centro di orbita gerarchico", grandezza 24 e colore #CBD5E1 a 390, 671.
+Crea un testo chiamato "pan_sx_r_3" con testo "• Ricalcolo manuale ad ogni cambio FPS", grandezza 24 e colore #CBD5E1 a 390, 759.
+Crea un testo chiamato "pan_sx_r_4" con testo "• Drift cumulativo dopo 15 secondi", grandezza 24 e colore #CBD5E1 a 390, 847.
+Crea un testo chiamato "pan_sx_r_5" con testo "• Collisioni visive non determinabili", grandezza 24 e colore #CBD5E1 a 390, 935.
+Crea un testo chiamato "pan_sx_r_6" con testo "• Export video dipendente da GPU live", grandezza 24 e colore #CBD5E1 a 390, 1023.
+Crea un testo chiamato "pan_sx_r_7" con testo "• Manutenzione critica sopra 100 nodi", grandezza 24 e colore #CBD5E1 a 390, 1111.
+Crea un rettangolo chiamato "pan_sx_b1" con larghezza 200, altezza 48, colore #1E293B e arrotondamento 8 a 265, 1254.
+Crea un testo chiamato "pan_sx_b1_t" con testo "CPU 94%", grandezza 20, peso grassetto e colore #F87171 a 265, 1254.
+Crea un rettangolo chiamato "pan_sx_b2" con larghezza 210, altezza 48, colore #1E293B e arrotondamento 8 a 495, 1254.
+Crea un testo chiamato "pan_sx_b2_t" con testo "DRIFT +42ms", grandezza 20, peso grassetto e colore #FBBF24 a 495, 1254.
+Crea un rettangolo chiamato "pan_sx_b3" con larghezza 210, altezza 48, colore #1E293B e arrotondamento 8 a 730, 1254.
+Crea un testo chiamato "pan_sx_b3_t" con testo "DOM BLOATED", grandezza 20, peso grassetto e colore #F87171 a 730, 1254.
+Crea un rettangolo chiamato "pan_sx_err" con larghezza 670, altezza 140, colore #3B0D16, bordo 2 #EF4444 e arrotondamento 12 a 500, 1410.
+Crea un testo chiamato "pan_sx_err_t1" con testo "STATO: DESINCRONIZZAZIONE", grandezza 24, peso grassetto e colore #FCA5A5 a 390, 1385.
+Crea un testo chiamato "pan_sx_err_t2" con testo "Impossibile garantire determinismo a 60 FPS", grandezza 20 e colore #FECACA a 440, 1430.
+Crea un gruppo chiamato "pannello_sinistro" con "pan_sx_bg", "pan_sx_header", "pan_sx_titolo", "pan_sx_r_0", "pan_sx_r_1", "pan_sx_r_2", "pan_sx_r_3", "pan_sx_r_4", "pan_sx_r_5", "pan_sx_r_6", "pan_sx_r_7", "pan_sx_b1", "pan_sx_b1_t", "pan_sx_b2", "pan_sx_b2_t", "pan_sx_b3", "pan_sx_b3_t", "pan_sx_err", "pan_sx_err_t1" e "pan_sx_err_t2".
+
+# --- PANNELLO DESTRO: SISTEMA JOY++ ---
+Crea un rettangolo chiamato "pan_dx_bg" con larghezza 760, altezza 1480, colore #07131E, bordo 2 #00F5D4 e arrotondamento 16 a 3340, 1080.
+Crea un rettangolo chiamato "pan_dx_header" con larghezza 760, altezza 84, colore #0D2638 e arrotondamento 16 a 3340, 382.
+Crea un titolo chiamato "pan_dx_titolo" con testo "SISTEMA JOY++ v0.2.1", grandezza 32, peso grassetto e colore #00F5D4 a 3220, 382.
+Crea un testo chiamato "pan_dx_r_0" con testo "• Unica timeline dichiarativa compilata", grandezza 24 e colore #E2E8F0 a 3260, 495.
+Crea un testo chiamato "pan_dx_r_1" con testo "• Orbite annidate su 3 livelli reali", grandezza 24 e colore #E2E8F0 a 3260, 583.
+Crea un testo chiamato "pan_dx_r_2" con testo "• Campionamento deterministico 1/60s", grandezza 24 e colore #E2E8F0 a 3260, 671.
+Crea un testo chiamato "pan_dx_r_3" con testo "• Zero drift su 1.801 fotogrammi 4K", grandezza 24 e colore #E2E8F0 a 3260, 759.
+Crea un testo chiamato "pan_dx_r_4" con testo "• Seek istantaneo via __joy_seek(ms)", grandezza 24 e colore #E2E8F0 a 3260, 847.
+Crea un testo chiamato "pan_dx_r_5" con testo "• Validazione statica pre-render", grandezza 24 e colore #E2E8F0 a 3260, 935.
+Crea un testo chiamato "pan_dx_r_6" con testo "• Pipeline headless Chromium -> FFmpeg", grandezza 24 e colore #E2E8F0 a 3260, 1023.
+Crea un testo chiamato "pan_dx_r_7" con testo "• Scalabile oltre 160 attori simultanei", grandezza 24 e colore #E2E8F0 a 3260, 1111.
+Crea un rettangolo chiamato "pan_dx_b1" con larghezza 200, altezza 48, colore #0D2638 e arrotondamento 8 a 3105, 1254.
+Crea un testo chiamato "pan_dx_b1_t" con testo "60.00 FPS", grandezza 20, peso grassetto e colore #00F5D4 a 3105, 1254.
+Crea un rettangolo chiamato "pan_dx_b2" con larghezza 210, altezza 48, colore #0D2638 e arrotondamento 8 a 3335, 1254.
+Crea un testo chiamato "pan_dx_b2_t" con testo "DRIFT 0.0ms", grandezza 20, peso grassetto e colore #34D399 a 3335, 1254.
+Crea un rettangolo chiamato "pan_dx_b3" con larghezza 210, altezza 48, colore #0D2638 e arrotondamento 8 a 3570, 1254.
+Crea un testo chiamato "pan_dx_b3_t" con testo "4K LOCKED", grandezza 20, peso grassetto e colore #38BDF8 a 3570, 1254.
+Crea un rettangolo chiamato "pan_dx_ok" con larghezza 670, altezza 140, colore #062825, bordo 2 #00F5D4 e arrotondamento 12 a 3340, 1410.
+Crea un testo chiamato "pan_dx_ok_t1" con testo "STATO: COMPILAZIONE DETERMINISTICA", grandezza 24, peso grassetto e colore #5EEAD4 a 3310, 1385.
+Crea un testo chiamato "pan_dx_ok_t2" con testo "Tutti i 164 attori sincronizzati al millisecondo", grandezza 20 e colore #CCFBF1 a 3310, 1430.
+Crea un gruppo chiamato "pannello_destro" con "pan_dx_bg", "pan_dx_header", "pan_dx_titolo", "pan_dx_r_0", "pan_dx_r_1", "pan_dx_r_2", "pan_dx_r_3", "pan_dx_r_4", "pan_dx_r_5", "pan_dx_r_6", "pan_dx_r_7", "pan_dx_b1", "pan_dx_b1_t", "pan_dx_b2", "pan_dx_b2_t", "pan_dx_b3", "pan_dx_b3_t", "pan_dx_ok", "pan_dx_ok_t1" e "pan_dx_ok_t2".
+
+# --- TIPOGRAFIA DI SCENA ---
+Crea un titolo chiamato "titolo_principale" con testo "CATTEDRALE ORBITALE", grandezza 72, peso grassetto e colore #F8FAFC a 1920, 90.
+Crea un testo chiamato "sottotitolo" con testo "MOTORE JOY++ v0.2.1 STRESS TEST — 3840x2160 @ 60 FPS", grandezza 26 e colore #00F5D4 a 1920, 160.
+Crea un titolo chiamato "kw_1" con testo "COMPOSIZIONE", grandezza 88, peso grassetto, colore bianco e scala 0.7 al centro.
+Crea un titolo chiamato "kw_2" con testo "GERARCHIA", grandezza 88, peso grassetto, colore #00F5D4 e scala 0.7 al centro.
+Crea un titolo chiamato "kw_3" con testo "MOVIMENTO", grandezza 88, peso grassetto, colore #38BDF8 e scala 0.7 al centro.
+Crea un titolo chiamato "kw_4" con testo "RENDER", grandezza 88, peso grassetto, colore #F472B6 e scala 0.7 al centro.
+Crea un rettangolo chiamato "flash_finale" con larghezza 3840, altezza 2160, colore bianco, opacità 0 e livello 10 al centro.
+Crea un titolo chiamato "payoff_1" con testo "DIRIGI LA COMPLESSITA.", grandezza 84, peso grassetto e colore #F8FAFC a 1920, 930.
+Crea un titolo chiamato "payoff_2" con testo "JOY++", grandezza 110, peso grassetto, colore #00F5D4 e scala 0.85 a 1920, 1050.
+Crea un testo chiamato "payoff_3" con testo "Scene leggibili. Movimento compilato.", grandezza 36 e colore #94A3B8 a 1920, 1180.
+
+# ============================================================================
+# TIMELINE — 5 ATTI (0.0s -> 30.0s)
+# ============================================================================
+
+# ATTO 1: Accensione del tempio (0.0s -> 5.0s)
+Dal secondo 0.1 al secondo 0.9:
+  "griglia_v_00" appare sfumando.
+  "griglia_v_12" appare sfumando.
+  "griglia_h_04" appare sfumando.
+
+Dal secondo 0.22 al secondo 1.02:
+  "griglia_v_01" appare sfumando.
+  "griglia_v_13" appare sfumando.
+  "griglia_h_05" appare sfumando.
+
+Dal secondo 0.34 al secondo 1.14:
+  "griglia_v_02" appare sfumando.
+  "griglia_v_14" appare sfumando.
+  "griglia_h_06" appare sfumando.
+
+Dal secondo 0.46 al secondo 1.26:
+  "griglia_v_03" appare sfumando.
+  "griglia_v_15" appare sfumando.
+  "griglia_h_07" appare sfumando.
+
+Dal secondo 0.58 al secondo 1.38:
+  "griglia_v_04" appare sfumando.
+  "griglia_v_16" appare sfumando.
+  "griglia_h_08" appare sfumando.
+
+Dal secondo 0.7 al secondo 1.5:
+  "griglia_v_05" appare sfumando.
+  "griglia_v_17" appare sfumando.
+  "griglia_h_09" appare sfumando.
+
+Dal secondo 0.82 al secondo 1.62:
+  "griglia_v_06" appare sfumando.
+  "griglia_v_18" appare sfumando.
+  "griglia_h_10" appare sfumando.
+
+Dal secondo 0.94 al secondo 1.74:
+  "griglia_v_07" appare sfumando.
+  "griglia_v_19" appare sfumando.
+  "griglia_h_11" appare sfumando.
+
+Dal secondo 1.06 al secondo 1.86:
+  "griglia_v_08" appare sfumando.
+  "griglia_h_00" appare sfumando.
+  "griglia_h_12" appare sfumando.
+
+Dal secondo 1.18 al secondo 1.98:
+  "griglia_v_09" appare sfumando.
+  "griglia_h_01" appare sfumando.
+  "griglia_h_13" appare sfumando.
+
+Dal secondo 1.3 al secondo 2.1:
+  "griglia_v_10" appare sfumando.
+  "griglia_h_02" appare sfumando.
+  "griglia_h_14" appare sfumando.
+
+Dal secondo 1.42 al secondo 2.22:
+  "griglia_v_11" appare sfumando.
+  "griglia_h_03" appare sfumando.
+  "griglia_h_15" appare sfumando.
+
+Dal secondo 0.5 al secondo 1.8:
+  "nucleo_alone" cambia opacità a 0.25 e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 0.7 al secondo 1.9:
+  "nucleo_anello" cambia opacità a 0.9 e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 0.9 al secondo 2.0:
+  "nucleo_cuore" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 1.2 al secondo 2.2:
+  "anello_1" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 1.45 al secondo 2.45:
+  "anello_2" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 1.7 al secondo 2.7:
+  "anello_3" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 1.95 al secondo 2.95:
+  "anello_4" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 2.2 al secondo 3.2:
+  "anello_5" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 2.45 al secondo 3.45:
+  "anello_6" appare sfumando e si ingrandisce fino a 1.0 con movimento scatto.
+
+Dal secondo 2.2 al secondo 3.4:
+  "asse_nord" appare sfumando.
+
+Dal secondo 2.3 al secondo 3.5:
+  "asse_sud" appare sfumando.
+
+Dal secondo 2.4 al secondo 3.6:
+  "asse_ovest" appare sfumando.
+
+Dal secondo 2.5 al secondo 3.7:
+  "asse_est" appare sfumando.
+
+Dal secondo 2.8 al secondo 4.2:
+  "titolo_principale" appare sfumando e scivola verso basso di 40 con movimento scatto.
+
+Dal secondo 3.3 al secondo 4.6:
+  "sottotitolo" appare sfumando e scivola verso basso di 30 con movimento scatto.
+
+# ATTO 2: Orbite gerarchiche (5.0s -> 12.0s)
+Dal secondo 4.8 al secondo 5.6:
+  "sat_0_gruppo" appare sfumando.
+
+Dal secondo 4.95 al secondo 5.75:
+  "sat_1_gruppo" appare sfumando.
+
+Dal secondo 5.1 al secondo 5.9:
+  "sat_2_gruppo" appare sfumando.
+
+Dal secondo 5.25 al secondo 6.05:
+  "sat_3_gruppo" appare sfumando.
+
+Dal secondo 5.4 al secondo 6.2:
+  "sat_4_gruppo" appare sfumando.
+
+Dal secondo 5.55 al secondo 6.35:
+  "sat_5_gruppo" appare sfumando.
+
+Dal secondo 5.7 al secondo 6.5:
+  "sat_6_gruppo" appare sfumando.
+
+Dal secondo 5.85 al secondo 6.65:
+  "sat_7_gruppo" appare sfumando.
+
+Dal secondo 5.5 al secondo 18.0:
+  "sistema_orbitale" orbita attorno a "nucleo_cuore" con raggio 460 per 2 giri in senso orario con movimento lineare.
+
+Dal secondo 6.0 al secondo 9.0:
+  "sat_0_corpo" si ingrandisce fino a 1.35.
+  "sat_2_corpo" si ingrandisce fino a 1.35.
+  "sat_4_corpo" si ingrandisce fino a 1.35.
+  "sat_6_corpo" si ingrandisce fino a 1.35.
+
+Dal secondo 9.0 al secondo 12.0:
+  "sat_0_corpo" si rimpicciolisce fino a 1.0.
+  "sat_2_corpo" si rimpicciolisce fino a 1.0.
+  "sat_4_corpo" si rimpicciolisce fino a 1.0.
+  "sat_6_corpo" si rimpicciolisce fino a 1.0.
+
+Dal secondo 6.0 al secondo 7.5:
+  "sat_1_corpo" si rimpicciolisce fino a 0.75.
+  "sat_3_corpo" si rimpicciolisce fino a 0.75.
+  "sat_5_corpo" si rimpicciolisce fino a 0.75.
+  "sat_7_corpo" si rimpicciolisce fino a 0.75.
+
+Dal secondo 7.5 al secondo 9.5:
+  "sat_1_corpo" si ingrandisce fino a 1.3.
+  "sat_3_corpo" si ingrandisce fino a 1.3.
+  "sat_5_corpo" si ingrandisce fino a 1.3.
+  "sat_7_corpo" si ingrandisce fino a 1.3.
+
+Dal secondo 9.5 al secondo 12.0:
+  "sat_1_corpo" si rimpicciolisce fino a 1.0.
+  "sat_3_corpo" si rimpicciolisce fino a 1.0.
+  "sat_5_corpo" si rimpicciolisce fino a 1.0.
+  "sat_7_corpo" si rimpicciolisce fino a 1.0.
+
+Dal secondo 8.0 al secondo 10.5:
+  "sat_0_etichetta" cambia colore in bianco.
+  "sat_1_etichetta" cambia colore in bianco.
+  "sat_2_etichetta" cambia colore in bianco.
+  "sat_3_etichetta" cambia colore in bianco.
+  "sat_4_etichetta" cambia colore in bianco.
+  "sat_5_etichetta" cambia colore in bianco.
+  "sat_6_etichetta" cambia colore in bianco.
+  "sat_7_etichetta" cambia colore in bianco.
+
+Dal secondo 10.5 al secondo 13.0:
+  "sat_0_etichetta" cambia colore in #00F5D4.
+  "sat_1_etichetta" cambia colore in #38BDF8.
+  "sat_2_etichetta" cambia colore in #818CF8.
+  "sat_3_etichetta" cambia colore in #C084FC.
+  "sat_4_etichetta" cambia colore in #F472B6.
+  "sat_5_etichetta" cambia colore in #FB7185.
+  "sat_6_etichetta" cambia colore in #FBBF24.
+  "sat_7_etichetta" cambia colore in #34D399.
+
+Dal secondo 5.8 al secondo 18.0:
+  "sat_0_luna_0" orbita attorno a "sat_0_corpo" con raggio 44 per 4 giri in senso orario con movimento lineare.
+  "sat_0_luna_1" orbita attorno a "sat_0_corpo" con raggio 54 per 6 giri in senso antiorario con movimento lineare.
+  "sat_0_luna_2" orbita attorno a "sat_0_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_1_luna_0" orbita attorno a "sat_1_corpo" con raggio 44 per 4 giri in senso antiorario con movimento lineare.
+  "sat_1_luna_1" orbita attorno a "sat_1_corpo" con raggio 54 per 6 giri in senso orario con movimento lineare.
+  "sat_1_luna_2" orbita attorno a "sat_1_corpo" con raggio 64 per 8 giri in senso antiorario con movimento lineare.
+  "sat_2_luna_0" orbita attorno a "sat_2_corpo" con raggio 44 per 4 giri in senso orario con movimento lineare.
+  "sat_2_luna_1" orbita attorno a "sat_2_corpo" con raggio 54 per 6 giri in senso antiorario con movimento lineare.
+  "sat_2_luna_2" orbita attorno a "sat_2_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_3_luna_0" orbita attorno a "sat_3_corpo" con raggio 44 per 4 giri in senso antiorario con movimento lineare.
+  "sat_3_luna_1" orbita attorno a "sat_3_corpo" con raggio 54 per 6 giri in senso orario con movimento lineare.
+  "sat_3_luna_2" orbita attorno a "sat_3_corpo" con raggio 64 per 8 giri in senso antiorario con movimento lineare.
+  "sat_4_luna_0" orbita attorno a "sat_4_corpo" con raggio 44 per 4 giri in senso orario con movimento lineare.
+  "sat_4_luna_1" orbita attorno a "sat_4_corpo" con raggio 54 per 6 giri in senso antiorario con movimento lineare.
+  "sat_4_luna_2" orbita attorno a "sat_4_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_5_luna_0" orbita attorno a "sat_5_corpo" con raggio 44 per 4 giri in senso antiorario con movimento lineare.
+  "sat_5_luna_1" orbita attorno a "sat_5_corpo" con raggio 54 per 6 giri in senso orario con movimento lineare.
+  "sat_5_luna_2" orbita attorno a "sat_5_corpo" con raggio 64 per 8 giri in senso antiorario con movimento lineare.
+  "sat_6_luna_0" orbita attorno a "sat_6_corpo" con raggio 44 per 4 giri in senso orario con movimento lineare.
+  "sat_6_luna_1" orbita attorno a "sat_6_corpo" con raggio 54 per 6 giri in senso antiorario con movimento lineare.
+  "sat_6_luna_2" orbita attorno a "sat_6_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_7_luna_0" orbita attorno a "sat_7_corpo" con raggio 44 per 4 giri in senso antiorario con movimento lineare.
+  "sat_7_luna_1" orbita attorno a "sat_7_corpo" con raggio 54 per 6 giri in senso orario con movimento lineare.
+  "sat_7_luna_2" orbita attorno a "sat_7_corpo" con raggio 64 per 8 giri in senso antiorario con movimento lineare.
+
+# ATTO 3: Pannelli di confronto laterali & pacchetti dati (12.0s -> 18.0s)
+Dal secondo 12.0 al secondo 13.2:
+  "pannello_sinistro" entra da sinistra e appare sfumando con movimento scatto.
+
+Dal secondo 12.3 al secondo 13.5:
+  "pannello_destro" entra da destra e appare sfumando con movimento scatto.
+
+# Pacchetti orizzontali (30 attori)
+Dal secondo 12.4 al secondo 12.9:
+  "pkt_00" cambia opacità a 0.85.
+  "pkt_15" cambia opacità a 0.85.
+
+Dal secondo 12.4 al secondo 22.5:
+  "pkt_00" si sposta a 3525, 365 con movimento lineare.
+  "pkt_15" si sposta a 3390, 1085 con movimento lineare.
+
+Dal secondo 12.55 al secondo 13.05:
+  "pkt_01" cambia opacità a 0.85.
+  "pkt_16" cambia opacità a 0.85.
+
+Dal secondo 12.55 al secondo 22.62:
+  "pkt_01" si sposta a 3480, 413 con movimento lineare.
+  "pkt_16" si sposta a 3345, 1133 con movimento lineare.
+
+Dal secondo 12.7 al secondo 13.2:
+  "pkt_02" cambia opacità a 0.85.
+  "pkt_17" cambia opacità a 0.85.
+
+Dal secondo 12.7 al secondo 22.74:
+  "pkt_02" si sposta a 3435, 461 con movimento lineare.
+  "pkt_17" si sposta a 3300, 1181 con movimento lineare.
+
+Dal secondo 12.85 al secondo 13.35:
+  "pkt_03" cambia opacità a 0.85.
+  "pkt_18" cambia opacità a 0.85.
+
+Dal secondo 12.85 al secondo 22.86:
+  "pkt_03" si sposta a 3390, 509 con movimento lineare.
+  "pkt_18" si sposta a 3525, 1229 con movimento lineare.
+
+Dal secondo 13.0 al secondo 13.5:
+  "pkt_04" cambia opacità a 0.85.
+  "pkt_19" cambia opacità a 0.85.
+
+Dal secondo 13.0 al secondo 22.98:
+  "pkt_04" si sposta a 3345, 557 con movimento lineare.
+  "pkt_19" si sposta a 3480, 1277 con movimento lineare.
+
+Dal secondo 13.15 al secondo 13.65:
+  "pkt_05" cambia opacità a 0.85.
+  "pkt_20" cambia opacità a 0.85.
+
+Dal secondo 13.15 al secondo 23.1:
+  "pkt_05" si sposta a 3300, 605 con movimento lineare.
+  "pkt_20" si sposta a 3435, 1325 con movimento lineare.
+
+Dal secondo 13.3 al secondo 13.8:
+  "pkt_06" cambia opacità a 0.85.
+  "pkt_21" cambia opacità a 0.85.
+
+Dal secondo 13.3 al secondo 23.22:
+  "pkt_06" si sposta a 3525, 653 con movimento lineare.
+  "pkt_21" si sposta a 3390, 1373 con movimento lineare.
+
+Dal secondo 13.45 al secondo 13.95:
+  "pkt_07" cambia opacità a 0.85.
+  "pkt_22" cambia opacità a 0.85.
+
+Dal secondo 13.45 al secondo 23.34:
+  "pkt_07" si sposta a 3480, 701 con movimento lineare.
+  "pkt_22" si sposta a 3345, 1421 con movimento lineare.
+
+Dal secondo 13.6 al secondo 14.1:
+  "pkt_08" cambia opacità a 0.85.
+  "pkt_23" cambia opacità a 0.85.
+
+Dal secondo 13.6 al secondo 23.46:
+  "pkt_08" si sposta a 3435, 749 con movimento lineare.
+  "pkt_23" si sposta a 3300, 1469 con movimento lineare.
+
+Dal secondo 13.75 al secondo 14.25:
+  "pkt_09" cambia opacità a 0.85.
+  "pkt_24" cambia opacità a 0.85.
+
+Dal secondo 13.75 al secondo 23.58:
+  "pkt_09" si sposta a 3390, 797 con movimento lineare.
+  "pkt_24" si sposta a 3525, 1517 con movimento lineare.
+
+Dal secondo 13.9 al secondo 14.4:
+  "pkt_10" cambia opacità a 0.85.
+  "pkt_25" cambia opacità a 0.85.
+
+Dal secondo 13.9 al secondo 22.5:
+  "pkt_10" si sposta a 3345, 845 con movimento lineare.
+  "pkt_25" si sposta a 3480, 1565 con movimento lineare.
+
+Dal secondo 14.05 al secondo 14.55:
+  "pkt_11" cambia opacità a 0.85.
+  "pkt_26" cambia opacità a 0.85.
+
+Dal secondo 14.05 al secondo 22.62:
+  "pkt_11" si sposta a 3300, 893 con movimento lineare.
+  "pkt_26" si sposta a 3435, 1613 con movimento lineare.
+
+Dal secondo 14.2 al secondo 14.7:
+  "pkt_12" cambia opacità a 0.85.
+  "pkt_27" cambia opacità a 0.85.
+
+Dal secondo 14.2 al secondo 22.74:
+  "pkt_12" si sposta a 3525, 941 con movimento lineare.
+  "pkt_27" si sposta a 3390, 1661 con movimento lineare.
+
+Dal secondo 14.35 al secondo 14.85:
+  "pkt_13" cambia opacità a 0.85.
+  "pkt_28" cambia opacità a 0.85.
+
+Dal secondo 14.35 al secondo 22.86:
+  "pkt_13" si sposta a 3480, 989 con movimento lineare.
+  "pkt_28" si sposta a 3345, 1709 con movimento lineare.
+
+Dal secondo 14.5 al secondo 15.0:
+  "pkt_14" cambia opacità a 0.85.
+  "pkt_29" cambia opacità a 0.85.
+
+Dal secondo 14.5 al secondo 22.98:
+  "pkt_14" si sposta a 3435, 1037 con movimento lineare.
+  "pkt_29" si sposta a 3300, 1757 con movimento lineare.
+
+# Pacchetti verticali (30 attori)
+Dal secondo 12.4 al secondo 12.9:
+  "pkt_30" cambia opacità a 0.85.
+  "pkt_45" cambia opacità a 0.85.
+
+Dal secondo 12.4 al secondo 22.5:
+  "pkt_30" si sposta a 1125, 1925 con movimento lineare.
+  "pkt_45" si sposta a 1935, 1925 con movimento lineare.
+
+Dal secondo 12.55 al secondo 13.05:
+  "pkt_31" cambia opacità a 0.85.
+  "pkt_46" cambia opacità a 0.85.
+
+Dal secondo 12.55 al secondo 22.62:
+  "pkt_31" si sposta a 1179, 1885 con movimento lineare.
+  "pkt_46" si sposta a 1989, 1885 con movimento lineare.
+
+Dal secondo 12.7 al secondo 13.2:
+  "pkt_32" cambia opacità a 0.85.
+  "pkt_47" cambia opacità a 0.85.
+
+Dal secondo 12.7 al secondo 22.74:
+  "pkt_32" si sposta a 1233, 1845 con movimento lineare.
+  "pkt_47" si sposta a 2043, 1845 con movimento lineare.
+
+Dal secondo 12.85 al secondo 13.35:
+  "pkt_33" cambia opacità a 0.85.
+  "pkt_48" cambia opacità a 0.85.
+
+Dal secondo 12.85 al secondo 22.86:
+  "pkt_33" si sposta a 1287, 1805 con movimento lineare.
+  "pkt_48" si sposta a 2097, 1805 con movimento lineare.
+
+Dal secondo 13.0 al secondo 13.5:
+  "pkt_34" cambia opacità a 0.85.
+  "pkt_49" cambia opacità a 0.85.
+
+Dal secondo 13.0 al secondo 22.98:
+  "pkt_34" si sposta a 1341, 1765 con movimento lineare.
+  "pkt_49" si sposta a 2151, 1765 con movimento lineare.
+
+Dal secondo 13.15 al secondo 13.65:
+  "pkt_35" cambia opacità a 0.85.
+  "pkt_50" cambia opacità a 0.85.
+
+Dal secondo 13.15 al secondo 23.1:
+  "pkt_35" si sposta a 1395, 1925 con movimento lineare.
+  "pkt_50" si sposta a 2205, 1925 con movimento lineare.
+
+Dal secondo 13.3 al secondo 13.8:
+  "pkt_36" cambia opacità a 0.85.
+  "pkt_51" cambia opacità a 0.85.
+
+Dal secondo 13.3 al secondo 23.22:
+  "pkt_36" si sposta a 1449, 1885 con movimento lineare.
+  "pkt_51" si sposta a 2259, 1885 con movimento lineare.
+
+Dal secondo 13.45 al secondo 13.95:
+  "pkt_37" cambia opacità a 0.85.
+  "pkt_52" cambia opacità a 0.85.
+
+Dal secondo 13.45 al secondo 23.34:
+  "pkt_37" si sposta a 1503, 1845 con movimento lineare.
+  "pkt_52" si sposta a 2313, 1845 con movimento lineare.
+
+Dal secondo 13.6 al secondo 14.1:
+  "pkt_38" cambia opacità a 0.85.
+  "pkt_53" cambia opacità a 0.85.
+
+Dal secondo 13.6 al secondo 23.46:
+  "pkt_38" si sposta a 1557, 1805 con movimento lineare.
+  "pkt_53" si sposta a 2367, 1805 con movimento lineare.
+
+Dal secondo 13.75 al secondo 14.25:
+  "pkt_39" cambia opacità a 0.85.
+  "pkt_54" cambia opacità a 0.85.
+
+Dal secondo 13.75 al secondo 23.58:
+  "pkt_39" si sposta a 1611, 1765 con movimento lineare.
+  "pkt_54" si sposta a 2421, 1765 con movimento lineare.
+
+Dal secondo 13.9 al secondo 14.4:
+  "pkt_40" cambia opacità a 0.85.
+  "pkt_55" cambia opacità a 0.85.
+
+Dal secondo 13.9 al secondo 22.5:
+  "pkt_40" si sposta a 1665, 1925 con movimento lineare.
+  "pkt_55" si sposta a 2475, 1925 con movimento lineare.
+
+Dal secondo 14.05 al secondo 14.55:
+  "pkt_41" cambia opacità a 0.85.
+  "pkt_56" cambia opacità a 0.85.
+
+Dal secondo 14.05 al secondo 22.62:
+  "pkt_41" si sposta a 1719, 1885 con movimento lineare.
+  "pkt_56" si sposta a 2529, 1885 con movimento lineare.
+
+Dal secondo 14.2 al secondo 14.7:
+  "pkt_42" cambia opacità a 0.85.
+  "pkt_57" cambia opacità a 0.85.
+
+Dal secondo 14.2 al secondo 22.74:
+  "pkt_42" si sposta a 1773, 1845 con movimento lineare.
+  "pkt_57" si sposta a 2583, 1845 con movimento lineare.
+
+Dal secondo 14.35 al secondo 14.85:
+  "pkt_43" cambia opacità a 0.85.
+  "pkt_58" cambia opacità a 0.85.
+
+Dal secondo 14.35 al secondo 22.86:
+  "pkt_43" si sposta a 1827, 1805 con movimento lineare.
+  "pkt_58" si sposta a 2637, 1805 con movimento lineare.
+
+Dal secondo 14.5 al secondo 15.0:
+  "pkt_44" cambia opacità a 0.85.
+  "pkt_59" cambia opacità a 0.85.
+
+Dal secondo 14.5 al secondo 22.98:
+  "pkt_44" si sposta a 1881, 1765 con movimento lineare.
+  "pkt_59" si sposta a 2691, 1765 con movimento lineare.
+
+# Dissolvenza uscita dei 60 pacchetti
+Dal secondo 23.0 al secondo 24.2:
+  "pkt_00" scompare sfumando.
+  "pkt_01" scompare sfumando.
+  "pkt_02" scompare sfumando.
+  "pkt_03" scompare sfumando.
+  "pkt_04" scompare sfumando.
+  "pkt_05" scompare sfumando.
+  "pkt_06" scompare sfumando.
+  "pkt_07" scompare sfumando.
+  "pkt_08" scompare sfumando.
+  "pkt_09" scompare sfumando.
+  "pkt_10" scompare sfumando.
+  "pkt_11" scompare sfumando.
+  "pkt_12" scompare sfumando.
+  "pkt_13" scompare sfumando.
+  "pkt_14" scompare sfumando.
+  "pkt_15" scompare sfumando.
+  "pkt_16" scompare sfumando.
+  "pkt_17" scompare sfumando.
+  "pkt_18" scompare sfumando.
+  "pkt_19" scompare sfumando.
+  "pkt_20" scompare sfumando.
+  "pkt_21" scompare sfumando.
+  "pkt_22" scompare sfumando.
+  "pkt_23" scompare sfumando.
+  "pkt_24" scompare sfumando.
+  "pkt_25" scompare sfumando.
+  "pkt_26" scompare sfumando.
+  "pkt_27" scompare sfumando.
+  "pkt_28" scompare sfumando.
+  "pkt_29" scompare sfumando.
+  "pkt_30" scompare sfumando.
+  "pkt_31" scompare sfumando.
+  "pkt_32" scompare sfumando.
+  "pkt_33" scompare sfumando.
+  "pkt_34" scompare sfumando.
+  "pkt_35" scompare sfumando.
+  "pkt_36" scompare sfumando.
+  "pkt_37" scompare sfumando.
+  "pkt_38" scompare sfumando.
+  "pkt_39" scompare sfumando.
+  "pkt_40" scompare sfumando.
+  "pkt_41" scompare sfumando.
+  "pkt_42" scompare sfumando.
+  "pkt_43" scompare sfumando.
+  "pkt_44" scompare sfumando.
+  "pkt_45" scompare sfumando.
+  "pkt_46" scompare sfumando.
+  "pkt_47" scompare sfumando.
+  "pkt_48" scompare sfumando.
+  "pkt_49" scompare sfumando.
+  "pkt_50" scompare sfumando.
+  "pkt_51" scompare sfumando.
+  "pkt_52" scompare sfumando.
+  "pkt_53" scompare sfumando.
+  "pkt_54" scompare sfumando.
+  "pkt_55" scompare sfumando.
+  "pkt_56" scompare sfumando.
+  "pkt_57" scompare sfumando.
+  "pkt_58" scompare sfumando.
+  "pkt_59" scompare sfumando.
+
+# ATTO 4: Sovraccarico controllato (18.0s -> 24.0s)
+Dal secondo 18.0 al secondo 24.0:
+  "sistema_orbitale" orbita attorno a "nucleo_cuore" con raggio 460 per 5 giri in senso orario con movimento lineare.
+  "sat_0_luna_0" orbita attorno a "sat_0_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_0_luna_1" orbita attorno a "sat_0_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_0_luna_2" orbita attorno a "sat_0_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_1_luna_0" orbita attorno a "sat_1_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_1_luna_1" orbita attorno a "sat_1_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_1_luna_2" orbita attorno a "sat_1_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_2_luna_0" orbita attorno a "sat_2_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_2_luna_1" orbita attorno a "sat_2_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_2_luna_2" orbita attorno a "sat_2_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_3_luna_0" orbita attorno a "sat_3_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_3_luna_1" orbita attorno a "sat_3_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_3_luna_2" orbita attorno a "sat_3_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_4_luna_0" orbita attorno a "sat_4_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_4_luna_1" orbita attorno a "sat_4_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_4_luna_2" orbita attorno a "sat_4_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_5_luna_0" orbita attorno a "sat_5_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_5_luna_1" orbita attorno a "sat_5_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_5_luna_2" orbita attorno a "sat_5_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_6_luna_0" orbita attorno a "sat_6_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_6_luna_1" orbita attorno a "sat_6_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_6_luna_2" orbita attorno a "sat_6_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+  "sat_7_luna_0" orbita attorno a "sat_7_corpo" con raggio 44 per 8 giri in senso orario con movimento lineare.
+  "sat_7_luna_1" orbita attorno a "sat_7_corpo" con raggio 54 per 8 giri in senso orario con movimento lineare.
+  "sat_7_luna_2" orbita attorno a "sat_7_corpo" con raggio 64 per 8 giri in senso orario con movimento lineare.
+
+Dal secondo 18.0 al secondo 24.0:
+  "anello_1" pulsa leggermente a ritmo velocemente.
+  "anello_2" pulsa moderatamente a ritmo velocemente.
+  "anello_3" pulsa intensamente a ritmo velocemente.
+  "anello_4" pulsa leggermente a ritmo freneticamente.
+  "anello_5" pulsa moderatamente a ritmo freneticamente.
+  "anello_6" pulsa intensamente a ritmo freneticamente.
+
+Dal secondo 18.0 al secondo 20.0:
+  "sat_0_luna_0" cambia colore in #00F5D4.
+  "sat_0_luna_1" cambia colore in #00F5D4.
+  "sat_0_luna_2" cambia colore in #00F5D4.
+  "sat_1_luna_0" cambia colore in #00F5D4.
+  "sat_1_luna_1" cambia colore in #00F5D4.
+  "sat_1_luna_2" cambia colore in #00F5D4.
+  "sat_2_luna_0" cambia colore in #00F5D4.
+  "sat_2_luna_1" cambia colore in #00F5D4.
+  "sat_2_luna_2" cambia colore in #00F5D4.
+  "sat_3_luna_0" cambia colore in #00F5D4.
+  "sat_3_luna_1" cambia colore in #00F5D4.
+  "sat_3_luna_2" cambia colore in #00F5D4.
+  "sat_4_luna_0" cambia colore in #00F5D4.
+  "sat_4_luna_1" cambia colore in #00F5D4.
+  "sat_4_luna_2" cambia colore in #00F5D4.
+  "sat_5_luna_0" cambia colore in #00F5D4.
+  "sat_5_luna_1" cambia colore in #00F5D4.
+  "sat_5_luna_2" cambia colore in #00F5D4.
+  "sat_6_luna_0" cambia colore in #00F5D4.
+  "sat_6_luna_1" cambia colore in #00F5D4.
+  "sat_6_luna_2" cambia colore in #00F5D4.
+  "sat_7_luna_0" cambia colore in #00F5D4.
+  "sat_7_luna_1" cambia colore in #00F5D4.
+  "sat_7_luna_2" cambia colore in #00F5D4.
+
+Dal secondo 20.0 al secondo 22.0:
+  "sat_0_luna_0" cambia colore in #FF2A85.
+  "sat_0_luna_1" cambia colore in #FF2A85.
+  "sat_0_luna_2" cambia colore in #FF2A85.
+  "sat_1_luna_0" cambia colore in #FF2A85.
+  "sat_1_luna_1" cambia colore in #FF2A85.
+  "sat_1_luna_2" cambia colore in #FF2A85.
+  "sat_2_luna_0" cambia colore in #FF2A85.
+  "sat_2_luna_1" cambia colore in #FF2A85.
+  "sat_2_luna_2" cambia colore in #FF2A85.
+  "sat_3_luna_0" cambia colore in #FF2A85.
+  "sat_3_luna_1" cambia colore in #FF2A85.
+  "sat_3_luna_2" cambia colore in #FF2A85.
+  "sat_4_luna_0" cambia colore in #FF2A85.
+  "sat_4_luna_1" cambia colore in #FF2A85.
+  "sat_4_luna_2" cambia colore in #FF2A85.
+  "sat_5_luna_0" cambia colore in #FF2A85.
+  "sat_5_luna_1" cambia colore in #FF2A85.
+  "sat_5_luna_2" cambia colore in #FF2A85.
+  "sat_6_luna_0" cambia colore in #FF2A85.
+  "sat_6_luna_1" cambia colore in #FF2A85.
+  "sat_6_luna_2" cambia colore in #FF2A85.
+  "sat_7_luna_0" cambia colore in #FF2A85.
+  "sat_7_luna_1" cambia colore in #FF2A85.
+  "sat_7_luna_2" cambia colore in #FF2A85.
+
+Dal secondo 22.0 al secondo 24.0:
+  "sat_0_luna_0" cambia colore in bianco.
+  "sat_0_luna_1" cambia colore in bianco.
+  "sat_0_luna_2" cambia colore in bianco.
+  "sat_1_luna_0" cambia colore in bianco.
+  "sat_1_luna_1" cambia colore in bianco.
+  "sat_1_luna_2" cambia colore in bianco.
+  "sat_2_luna_0" cambia colore in bianco.
+  "sat_2_luna_1" cambia colore in bianco.
+  "sat_2_luna_2" cambia colore in bianco.
+  "sat_3_luna_0" cambia colore in bianco.
+  "sat_3_luna_1" cambia colore in bianco.
+  "sat_3_luna_2" cambia colore in bianco.
+  "sat_4_luna_0" cambia colore in bianco.
+  "sat_4_luna_1" cambia colore in bianco.
+  "sat_4_luna_2" cambia colore in bianco.
+  "sat_5_luna_0" cambia colore in bianco.
+  "sat_5_luna_1" cambia colore in bianco.
+  "sat_5_luna_2" cambia colore in bianco.
+  "sat_6_luna_0" cambia colore in bianco.
+  "sat_6_luna_1" cambia colore in bianco.
+  "sat_6_luna_2" cambia colore in bianco.
+  "sat_7_luna_0" cambia colore in bianco.
+  "sat_7_luna_1" cambia colore in bianco.
+  "sat_7_luna_2" cambia colore in bianco.
+
+Dal secondo 18.2 al secondo 19.2:
+  "griglia_v_00" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_02" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_04" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_06" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_08" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_10" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_12" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_14" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_16" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_v_18" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_00" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_02" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_04" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_06" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_08" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_10" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_12" cambia opacità a 0.95 e cambia colore in #00F5D4.
+  "griglia_h_14" cambia opacità a 0.95 e cambia colore in #00F5D4.
+
+Dal secondo 19.2 al secondo 20.5:
+  "griglia_v_00" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_02" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_04" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_06" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_08" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_10" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_12" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_14" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_16" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_18" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_00" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_02" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_04" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_06" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_08" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_10" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_12" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_14" cambia opacità a 0.35 e cambia colore in #11192E.
+
+Dal secondo 20.5 al secondo 21.5:
+  "griglia_v_01" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_03" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_05" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_07" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_09" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_11" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_13" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_15" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_17" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_v_19" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_01" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_03" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_05" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_07" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_09" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_11" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_13" cambia opacità a 0.95 e cambia colore in #F472B6.
+  "griglia_h_15" cambia opacità a 0.95 e cambia colore in #F472B6.
+
+Dal secondo 21.5 al secondo 23.0:
+  "griglia_v_01" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_03" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_05" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_07" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_09" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_11" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_13" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_15" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_17" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_v_19" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_01" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_03" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_05" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_07" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_09" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_11" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_13" cambia opacità a 0.35 e cambia colore in #11192E.
+  "griglia_h_15" cambia opacità a 0.35 e cambia colore in #11192E.
+
+Dal secondo 18.5 al secondo 19.5:
+  "fascio_diag_1" cambia opacità a 0.75.
+
+Dal secondo 22.5 al secondo 23.8:
+  "fascio_diag_1" scompare sfumando.
+
+Dal secondo 19.0 al secondo 20.0:
+  "fascio_diag_2" cambia opacità a 0.75.
+
+Dal secondo 22.8 al secondo 24.0:
+  "fascio_diag_2" scompare sfumando.
+
+Dal secondo 19.5 al secondo 20.5:
+  "fascio_diag_3" cambia opacità a 0.65.
+
+Dal secondo 23.0 al secondo 24.2:
+  "fascio_diag_3" scompare sfumando.
+
+Dal secondo 20.0 al secondo 21.0:
+  "fascio_diag_4" cambia opacità a 0.65.
+
+Dal secondo 23.2 al secondo 24.3:
+  "fascio_diag_4" scompare sfumando.
+
+Dal secondo 18.2 al secondo 18.5:
+  "kw_1" appare sfumando e si ingrandisce fino a 1.05 con movimento scatto.
+
+Dal secondo 19.3 al secondo 19.6:
+  "kw_1" scompare sfumando e si ingrandisce fino a 1.2.
+
+Dal secondo 19.7 al secondo 20.0:
+  "kw_2" appare sfumando e si ingrandisce fino a 1.05 con movimento scatto.
+
+Dal secondo 20.8 al secondo 21.1:
+  "kw_2" scompare sfumando e si ingrandisce fino a 1.2.
+
+Dal secondo 21.2 al secondo 21.5:
+  "kw_3" appare sfumando e si ingrandisce fino a 1.05 con movimento scatto.
+
+Dal secondo 22.3 al secondo 22.6:
+  "kw_3" scompare sfumando e si ingrandisce fino a 1.2.
+
+Dal secondo 22.7 al secondo 23.0:
+  "kw_4" appare sfumando e si ingrandisce fino a 1.05 con movimento scatto.
+
+Dal secondo 23.7 al secondo 24.0:
+  "kw_4" scompare sfumando e si ingrandisce fino a 1.2.
+
+# ATTO 5: Collasso e ricomposizione finale (24.0s -> 30.0s)
+Dal secondo 24.0 al secondo 25.0:
+  "pannello_sinistro" esce verso sinistra e scompare sfumando con movimento morbido.
+  "pannello_destro" esce verso destra e scompare sfumando con movimento morbido.
+  "titolo_principale" scompare sfumando.
+  "sottotitolo" scompare sfumando.
+  "sat_0_etichetta" scompare sfumando.
+  "sat_1_etichetta" scompare sfumando.
+  "sat_2_etichetta" scompare sfumando.
+  "sat_3_etichetta" scompare sfumando.
+  "sat_4_etichetta" scompare sfumando.
+  "sat_5_etichetta" scompare sfumando.
+  "sat_6_etichetta" scompare sfumando.
+  "sat_7_etichetta" scompare sfumando.
+
+Dal secondo 24.2 al secondo 25.4:
+  "asse_nord" scompare sfumando.
+  "asse_sud" scompare sfumando.
+  "asse_ovest" scompare sfumando.
+  "asse_est" scompare sfumando.
+
+Dal secondo 24.2 al secondo 26.2:
+  "anello_1" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "anello_2" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "anello_3" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "anello_4" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "anello_5" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "anello_6" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "sistema_orbitale" si rimpicciolisce fino a 0.05 e scompare sfumando con movimento scatto.
+  "sat_1_corpo" cambia colore in #00F5D4.
+  "sat_2_corpo" cambia colore in #00F5D4.
+  "sat_3_corpo" cambia colore in #00F5D4.
+  "sat_4_corpo" cambia colore in #00F5D4.
+  "sat_5_corpo" cambia colore in #00F5D4.
+  "sat_6_corpo" cambia colore in #00F5D4.
+  "sat_7_corpo" cambia colore in #00F5D4.
+
+Dal secondo 24.5 al secondo 26.0:
+  "griglia_v_00" scompare sfumando.
+  "griglia_v_01" scompare sfumando.
+  "griglia_v_02" scompare sfumando.
+  "griglia_v_03" scompare sfumando.
+  "griglia_v_04" scompare sfumando.
+  "griglia_v_05" scompare sfumando.
+  "griglia_v_06" scompare sfumando.
+  "griglia_v_07" scompare sfumando.
+  "griglia_v_08" scompare sfumando.
+  "griglia_v_09" scompare sfumando.
+  "griglia_v_10" scompare sfumando.
+  "griglia_v_11" scompare sfumando.
+  "griglia_v_12" scompare sfumando.
+  "griglia_v_13" scompare sfumando.
+  "griglia_v_14" scompare sfumando.
+  "griglia_v_15" scompare sfumando.
+  "griglia_v_16" scompare sfumando.
+  "griglia_v_17" scompare sfumando.
+  "griglia_v_18" scompare sfumando.
+  "griglia_v_19" scompare sfumando.
+  "griglia_h_00" scompare sfumando.
+  "griglia_h_01" scompare sfumando.
+  "griglia_h_02" scompare sfumando.
+  "griglia_h_03" scompare sfumando.
+  "griglia_h_04" scompare sfumando.
+  "griglia_h_05" scompare sfumando.
+  "griglia_h_06" scompare sfumando.
+  "griglia_h_07" scompare sfumando.
+  "griglia_h_08" scompare sfumando.
+  "griglia_h_09" scompare sfumando.
+  "griglia_h_10" scompare sfumando.
+  "griglia_h_11" scompare sfumando.
+  "griglia_h_12" scompare sfumando.
+  "griglia_h_13" scompare sfumando.
+  "griglia_h_14" scompare sfumando.
+  "griglia_h_15" scompare sfumando.
+
+Dal secondo 25.5 al secondo 26.3:
+  "nucleo_cuore" si ingrandisce fino a 3.5 e cambia colore in #00F5D4 con movimento scatto.
+
+Dal secondo 26.2 al secondo 26.45:
+  "flash_finale" cambia opacità a 0.92 con movimento scatto.
+
+Dal secondo 26.45 al secondo 27.1:
+  "flash_finale" scompare sfumando con movimento morbido.
+
+Dal secondo 26.3 al secondo 27.0:
+  "nucleo_cuore" scompare sfumando.
+  "nucleo_anello" scompare sfumando.
+  "nucleo_alone" scompare sfumando.
+
+Dal secondo 26.8 al secondo 27.8:
+  "payoff_1" appare sfumando e scivola verso alto di 70 con movimento scatto.
+
+Dal secondo 27.2 al secondo 28.2:
+  "payoff_2" appare sfumando e si ingrandisce fino a 1.0 con movimento elastico.
+
+Dal secondo 27.7 al secondo 28.7:
+  "payoff_3" appare sfumando e scivola verso alto di 40 con movimento morbido.
+
+Dal secondo 28.7 al secondo 30.0:
+  "payoff_2" pulsa leggermente a ritmo lentamente.

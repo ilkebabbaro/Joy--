@@ -1,148 +1,131 @@
 # ============================================================
-#  JOY++ v0.2 — Sfida Frenetica: Framework JS vs Joy++ (20s)
-#  HTML con player: cargo run -- examples/sfida_hyperframe_20s.joy -o sfida.html
-#  Render MP4:      cargo run -- render examples/sfida_hyperframe_20s.joy -o sfida.mp4
+#  JOY++ v0.2.1 — Stress Test 4K (3840x2160 @ 60fps)
+#  Astrolabio Meccanico con Gruppi Annidati e Orbite Ultra-HD
 # ============================================================
 
-Prepara un palco grande 1280 per 720 con sfondo #090D16 a 60 fotogrammi.
+Prepara un palco grande 3840 per 2160 con sfondo #05070D a 60 fotogrammi.
 
-# ---------------------------------------------------------- SCENOGRAFIA & HEADER
-Crea un rettangolo chiamato "sfondo_js" con larghezza 640, altezza 720, colore #161018 e livello 0 a 320, 360.
-Crea un rettangolo chiamato "sfondo_joy" con larghezza 640, altezza 720, colore #0B1922 e livello 0 a 960, 360.
-Crea un rettangolo chiamato "divisore" con larghezza 4, altezza 720, colore bianco, scala 0 e livello 10 al centro.
+# ---------------------------------------------------------- CORNICE HUD 4K (4 ANGOLI)
+Crea un rettangolo chiamato "angolo_as" con larghezza 160, altezza 6, colore #00F5D4 e livello 10 a 220, 140.
+Crea un rettangolo chiamato "angolo_ad" con larghezza 160, altezza 6, colore #00F5D4 e livello 10 a 3620, 140.
+Crea un rettangolo chiamato "angolo_bs" con larghezza 160, altezza 6, colore #00F5D4 e livello 10 a 220, 2020.
+Crea un rettangolo chiamato "angolo_bd" con larghezza 160, altezza 6, colore #00F5D4 e livello 10 a 3620, 2020.
 
-Crea un titolo chiamato "titolo_js" con testo "FRAMEWORK JS", grandezza 34, colore #FF4D6D e livello 8 a 320, 75.
-Crea un testo chiamato "sub_js" con testo "React • Node • Boilerplate", grandezza 18, colore #94A3B8 e livello 8 a 320, 112.
-Crea un gruppo chiamato "header_js" con "titolo_js" e "sub_js", livello 8.
+Crea un titolo chiamato "hud_titolo" con testo "ASTROLABIO // MOTORE 4K", grandezza 42, colore bianco e livello 12 a 520, 140.
+Crea un testo chiamato "hud_spec" con testo "3840x2160 • 60 FPS • ZERO DIPENDENZE", grandezza 28, colore #38BDF8 e livello 12 a 3220, 140.
+Crea un testo chiamato "hud_stato" con testo "SINCRONIZZAZIONE ORBITALE ATTIVA", grandezza 28, colore #F59E0B e livello 12 a 560, 2020.
+Crea un testo chiamato "hud_ver" con testo "JOY++ v0.2.1", grandezza 32, peso grassetto, colore #00F5D4 e livello 12 a 3420, 2020.
 
-Crea un titolo chiamato "titolo_joy" con testo "JOY++ v0.2", grandezza 36, colore #00F5D4 e livello 8 a 960, 75.
-Crea un testo chiamato "sub_joy" con testo "Italiano • Zero Dipendenze • Rust", grandezza 18, colore #E2E8F0 e livello 8 a 960, 112.
-Crea un gruppo chiamato "header_joy" con "titolo_joy" e "sub_joy", livello 8.
+# ---------------------------------------------------------- GHIERA ESTERNA (QUADRANTI & INDICI)
+Crea un cerchio chiamato "anello_esterno" con raggio 820, colore trasparente, bordo 6 #1E293B, scala 0 e livello 1 al centro.
+Crea un cerchio chiamato "anello_medio" con raggio 620, colore trasparente, bordo 4 #334155, scala 0 e livello 2 al centro.
+Crea un cerchio chiamato "anello_interno" con raggio 420, colore trasparente, bordo 8 #0284C7, scala 0 e livello 3 al centro.
 
-# ---------------------------------------------------------- ATTO 1: SETUP & CODICE (2.5s - 8.5s)
-# Lato JS: valanga di righe e metriche rosse
-Crea un rettangolo chiamato "box_js" con larghezza 520, altezza 310, arrotondamento 14, colore #1E1524, bordo 2 #FF4D6D, scala 0 e livello 3 a 320, 340.
-Crea un testo chiamato "riga1_js" con testo "import { useCurrentFrame } from 'js';", grandezza 19, colore #FCA5A5 e livello 5 a 320, 235.
-Crea un testo chiamato "riga2_js" con testo "const f = interpolate(frame,[0,60],[0,1]);", grandezza 19, colore #FCA5A5 e livello 5 a 320, 285.
-Crea un testo chiamato "riga3_js" con testo "const rad = (f * 360 * Math.PI) / 180;", grandezza 19, colore #FCA5A5 e livello 5 a 320, 335.
-Crea un testo chiamato "riga4_js" con testo "return <div style={{transform:...}} />;", grandezza 19, colore #FCA5A5 e livello 5 a 320, 385.
-Crea un testo chiamato "riga5_js" con testo "// + 138 righe di config & build...", grandezza 19, colore #94A3B8 e livello 5 a 320, 435.
+# 8 indici cardinali e diagonali sulla ghiera da 820 px
+Crea un quadrato chiamato "tacca_n" con lato 36, colore #00F5D4, rotazione 45 e livello 5 a 1920, 260.
+Crea un quadrato chiamato "tacca_s" con lato 36, colore #00F5D4, rotazione 45 e livello 5 a 1920, 1900.
+Crea un quadrato chiamato "tacca_e" con lato 36, colore #00F5D4, rotazione 45 e livello 5 a 2740, 1080.
+Crea un quadrato chiamato "tacca_o" con lato 36, colore #00F5D4, rotazione 45 e livello 5 a 1100, 1080.
 
-Crea un rettangolo chiamato "badge_js" con larghezza 440, altezza 54, arrotondamento 27, colore #7F1D1D, scala 0 e livello 6 a 320, 565.
-Crea un testo chiamato "stat_js" con testo "142 RIGHE  •  1.850 TOKEN", grandezza 22, peso grassetto, colore #FECACA e livello 7 a 320, 565.
+Crea un cerchio chiamato "perno_ne" con raggio 18, colore #F59E0B e livello 5 a 2500, 500.
+Crea un cerchio chiamato "perno_no" con raggio 18, colore #F59E0B e livello 5 a 1340, 500.
+Crea un cerchio chiamato "perno_se" con raggio 18, colore #F59E0B e livello 5 a 2500, 1660.
+Crea un cerchio chiamato "perno_so" con raggio 18, colore #F59E0B e livello 5 a 1340, 1660.
 
-# Lato Joy++: 3 righe pulite e metriche verdi
-Crea un rettangolo chiamato "box_joy" con larghezza 520, altezza 310, arrotondamento 14, colore #0E2430, bordo 2 #00F5D4, scala 0 e livello 3 a 960, 340.
-Crea un testo chiamato "riga1_joy" con testo "Crea un cerchio chiamato ‘terra’...", grandezza 20, colore #A7F3D0 e livello 5 a 960, 275.
-Crea un testo chiamato "riga2_joy" con testo "‘terra’ orbita attorno a ‘sole’", grandezza 20, colore #A7F3D0 e livello 5 a 960, 340.
-Crea un testo chiamato "riga3_joy" con testo "  con raggio 121 per 3 giri.", grandezza 20, colore #6EE7B7 e livello 5 a 960, 405.
+Crea un gruppo chiamato "ghiera_esterna" con "tacca_n", "tacca_s", "tacca_e", "tacca_o", "perno_ne", "perno_no", "perno_se" e "perno_so", scala 0 e livello 5.
 
-Crea un rettangolo chiamato "badge_joy" con larghezza 440, altezza 54, arrotondamento 27, colore #065F46, scala 0 e livello 6 a 960, 565.
-Crea un testo chiamato "stat_joy" con testo "3 RIGHE  •  48 TOKEN", grandezza 24, peso grassetto, colore #6EE7B7 e livello 7 a 960, 565.
+# ---------------------------------------------------------- ROTORE INTERNO & LANCETTE
+Crea un rettangolo chiamato "barra_h" con larghezza 1160, altezza 10, arrotondamento 5, colore #38BDF8 e livello 4 al centro.
+Crea un rettangolo chiamato "barra_v" con larghezza 10, altezza 1160, arrotondamento 5, colore #38BDF8 e livello 4 al centro.
+Crea un rettangolo chiamato "diagonale_1" con larghezza 840, altezza 6, colore #64748B, rotazione 45 e livello 3 al centro.
+Crea un rettangolo chiamato "diagonale_2" con larghezza 840, altezza 6, colore #64748B, rotazione -45 e livello 3 al centro.
 
-# ---------------------------------------------------------- ATTO 2: MOTORE DAL VIVO (8.5s - 15.5s)
-# Lato JS: crash / errore di compilazione
-Crea un rettangolo chiamato "err_box" con larghezza 480, altezza 170, arrotondamento 16, colore #991B1B, bordo 3 #FCA5A5, scala 0, rotazione -6 e livello 9 a 320, 350.
-Crea un titolo chiamato "err_titolo" con testo "TypeError: NaN", grandezza 34, colore bianco e livello 10 a 320, 325.
-Crea un testo chiamato "err_sub" con testo "Build fallita dopo 14.2 secondi", grandezza 20, colore #FECACA e livello 10 a 320, 375.
-Crea un gruppo chiamato "crash_js" con "err_box", "err_titolo" e "err_sub", livello 9.
+Crea un gruppo chiamato "rotore_meccanico" con "barra_h", "barra_v", "diagonale_1" e "diagonale_2", scala 0 e livello 4.
 
-# Lato Joy++: sistema orbitale vivo (Sole + Terra + Luna annidati)
-Crea un cerchio chiamato "sole" con raggio 42, colore #F59E0B e livello 6 a 960, 350.
-Crea un cerchio chiamato "terra" con raggio 16, colore #38BDF8 e livello 7 a 1070, 350.
-Crea un cerchio chiamato "luna" con raggio 6, colore bianco e livello 8 a 1102, 350.
-Crea un gruppo chiamato "pianeta_luna" con "terra" e "luna", livello 7.
-Crea un gruppo chiamato "sistema_joy" con "sole" e "pianeta_luna", livello 6.
+# ---------------------------------------------------------- NUCLEO & SISTEMA SATELLITARE ANNIDATO
+Crea un cerchio chiamato "nucleo" con raggio 95, colore #F59E0B, scala 0 e livello 8 al centro.
+Crea un cerchio chiamato "corona_nucleo" con raggio 145, colore trasparente, bordo 6 #FDE68A, scala 0 e livello 7 al centro.
 
-# ---------------------------------------------------------- ATTO 3: FINALE ESPLOSIVO (15.5s - 20s)
-Crea un rettangolo chiamato "onda_vittoria" con larghezza 1400, altezza 720, colore #00F5D4, scala 0 e livello 15 al centro.
-Crea un rettangolo chiamato "sfondo_finale" con larghezza 1280, altezza 720, colore #090D16 e livello 16 al centro.
-Crea un titolo chiamato "payoff" con testo "DIRIGI I PIXEL. NON PROGRAMMARLI.", grandezza 44, colore bianco, scala 0.5 e livello 18 a 640, 325.
-Crea un testo chiamato "firma_finale" con testo "JOY++ v0.2  •  Compilato in 0.4 ms  •  Export MP4 nativo", grandezza 24, colore #00F5D4 e livello 18 a 640, 405.
+# Pianeta 1 (orbita 420 px) + sua Luna (orbita 75 px)
+Crea un cerchio chiamato "pianeta_alfa" con raggio 34, colore #38BDF8 e livello 9 a 2340, 1080.
+Crea un cerchio chiamato "luna_alfa" con raggio 12, colore bianco e livello 10 a 2415, 1080.
+Crea un gruppo chiamato "sistema_alfa" con "pianeta_alfa" e "luna_alfa", livello 9.
 
-# ========================================================== TIMELINE (20 SECONDI)
+# Pianeta 2 (orbita 620 px opposta) + sua Luna (orbita 90 px)
+Crea un cerchio chiamato "pianeta_beta" con raggio 42, colore #F43F5E e livello 9 a 1300, 1080.
+Crea un cerchio chiamato "luna_beta" con raggio 14, colore #FDE68A e livello 10 a 1210, 1080.
+Crea un gruppo chiamato "sistema_beta" con "pianeta_beta" e "luna_beta", livello 9.
 
-# 0.0s - 2.0s: Apertura a taglio
-Dal secondo 0 al secondo 0.7:
-  "divisore" si ingrandisce fino a 1 con movimento scatto.
-  "header_js" entra dall'alto con movimento scatto.
-  "header_joy" entra dall'alto con movimento scatto.
+# Sonda veloce esterna (orbita 820 px)
+Crea un quadrato chiamato "sonda_gamma" con lato 32, colore #00F5D4, rotazione 45 e livello 9 a 2740, 1080.
 
-# 2.0s - 4.5s: Compaiono i box codice
-Dal secondo 2 al secondo 2.8:
-  "box_js" si ingrandisce fino a 1 con movimento scatto.
-  "box_joy" si ingrandisce fino a 1 con movimento scatto.
+# Gruppo maestro che incapsula tutto il meccanismo
+Crea un gruppo chiamato "astrolabio_4k" con "anello_esterno", "anello_medio", "anello_interno", "ghiera_esterna", "rotore_meccanico", "nucleo", "corona_nucleo", "sistema_alfa", "sistema_beta" e "sonda_gamma", livello 5.
 
-# Pioggia frenetica di righe JS vs 3 righe Joy++
-Dal secondo 2.8 al secondo 3.3:
-  "riga1_js" appare sfumando.
-  "riga1_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+# ---------------------------------------------------------- TITOLO FINALE IN SOVRAIMPRESSIONE
+Crea un rettangolo chiamato "velo_finale" con larghezza 3840, altezza 2160, colore #05070D, opacità 0 e livello 20 al centro.
+Crea un titolo chiamato "titolo_finale" con testo "3840 × 2160 • 60 FPS", grandezza 110, colore bianco, scala 0.6 e livello 22 a 1920, 1010.
+Crea un testo chiamato "sottotitolo_finale" con testo "RENDERING DETERMINISTICO IN RUST", grandezza 44, colore #00F5D4 e livello 22 a 1920, 1140.
 
-Dal secondo 3.3 al secondo 3.8:
-  "riga2_js" appare sfumando.
-  "riga2_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+# ========================================================== TIMELINE (15 SECONDI)
 
-Dal secondo 3.8 al secondo 4.3:
-  "riga3_js" appare sfumando.
-  "riga3_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+# 0.0s - 1.8s: Ingresso HUD dai 4 lati ed esplosione anelli dal centro
+Dal secondo 0 al secondo 1.2:
+  "angolo_as" entra da sinistra con movimento scatto.
+  "angolo_ad" entra da destra con movimento scatto.
+  "angolo_bs" entra da sinistra con movimento scatto.
+  "angolo_bd" entra da destra con movimento scatto.
+  "hud_titolo" entra dall'alto con movimento scatto.
+  "hud_spec" entra dall'alto con movimento scatto.
+  "hud_stato" entra dal basso con movimento scatto.
+  "hud_ver" entra dal basso con movimento scatto.
 
-Dal secondo 4.3 al secondo 4.8:
-  "riga4_js" appare sfumando.
+Dal secondo 0.4 al secondo 1.8:
+  "anello_esterno" si ingrandisce fino a 1 con movimento elastico.
+  "anello_medio" si ingrandisce fino a 1 con movimento elastico.
+  "anello_interno" si ingrandisce fino a 1 con movimento elastico.
+  "nucleo" si ingrandisce fino a 1 con movimento rimbalzo.
+  "corona_nucleo" si ingrandisce fino a 1 con movimento elastico.
 
-Dal secondo 4.8 al secondo 5.3:
-  "riga5_js" appare sfumando.
+# 1.4s - 2.6s: Compaiono ghiera e rotore meccanico
+Dal secondo 1.4 al secondo 2.6:
+  "ghiera_esterna" si ingrandisce fino a 1 e ruota di 90 gradi con movimento scatto.
+  "rotore_meccanico" si ingrandisce fino a 1 e ruota di -90 gradi con movimento scatto.
 
-# 5.3s - 8.5s: Confronto metriche (142 righe vs 3 righe)
-Dal secondo 5.3 al secondo 6.1:
-  "badge_js" si ingrandisce fino a 1 con movimento rimbalzo.
-  "stat_js" appare sfumando.
-  "badge_joy" si ingrandisce fino a 1 con movimento elastico.
-  "stat_joy" appare sfumando.
+# 2.6s - 11.5s: Piena operatività — rotazioni contro-rotanti, orbite annidate e cambi colore
+Dal secondo 2.6 al secondo 11.5:
+  "ghiera_esterna" ruota di 360 gradi con movimento lineare.
+  "rotore_meccanico" ruota di -720 gradi con movimento lineare.
+  "nucleo" pulsa moderatamente a ritmo velocemente e cambia colore in #00F5D4.
+  "corona_nucleo" pulsa leggermente a ritmo freneticamente.
+  "sistema_alfa" orbita attorno a "nucleo" con raggio 426 per 3 giri con movimento lineare.
+  "luna_alfa" orbita attorno a "pianeta_alfa" con raggio 75 per 12 giri in senso orario con movimento lineare.
+  "sistema_beta" orbita attorno a "nucleo" con raggio 627 per 2 giri in senso orario con movimento lineare.
+  "luna_beta" orbita attorno a "pianeta_beta" con raggio 90 per 10 giri con movimento lineare.
+  "sonda_gamma" orbita attorno a "nucleo" con raggio 820 per 4 giri con movimento lineare.
+  "sonda_gamma" ruota di 1440 gradi con movimento lineare.
 
-Dal secondo 6.1 al secondo 8.3:
-  "badge_js" pulsa intensamente a ritmo freneticamente e cambia colore in #DC2626.
-  "badge_joy" pulsa leggermente a ritmo normalmente e cambia colore in #059669.
+# Cambio colore delle tacche a metà corsa (6.5s - 8.5s)
+Dal secondo 6.5 al secondo 8.5:
+  "tacca_n" cambia colore in #F43F5E.
+  "tacca_s" cambia colore in #F43F5E.
+  "tacca_e" cambia colore in #F43F5E.
+  "tacca_o" cambia colore in #F43F5E.
 
-# 8.5s - 15.5s: Via il codice, spazio all'esecuzione dal vivo!
-Dal secondo 8.5 al secondo 9.2:
-  "box_js" si rimpicciolisce fino a 0 con movimento scatto.
-  "riga1_js" scompare sfumando.
-  "riga2_js" scompare sfumando.
-  "riga3_js" scompare sfumando.
-  "riga4_js" scompare sfumando.
-  "riga5_js" scompare sfumando.
-  "box_joy" si rimpicciolisce fino a 0 con movimento scatto.
-  "riga1_joy" scompare sfumando.
-  "riga2_joy" scompare sfumando.
-  "riga3_joy" scompare sfumando.
+# 11.5s - 13.2s: Collasso gravitazionale dell'intero astrolabio e uscita HUD
+Dal secondo 11.5 al secondo 13.2:
+  "astrolabio_4k" si rimpicciolisce fino a 0 e ruota di 180 gradi con movimento scatto.
+  "hud_titolo" esce verso l'alto con movimento scatto.
+  "hud_spec" esce verso l'alto con movimento scatto.
+  "hud_stato" esce verso il basso con movimento scatto.
+  "hud_ver" esce verso il basso con movimento scatto.
+  "angolo_as" esce verso sinistra con movimento scatto.
+  "angolo_ad" esce verso destra con movimento scatto.
+  "angolo_bs" esce verso sinistra con movimento scatto.
+  "angolo_bd" esce verso destra con movimento scatto.
 
-# A sinistra esplode l'errore JS; a destra entra il sistema orbitale Joy++
-Dal secondo 9.2 al secondo 10.2:
-  "err_box" si ingrandisce fino a 1 e ruota di 6 gradi con movimento rimbalzo.
-  "err_titolo" appare sfumando.
-  "err_sub" appare sfumando.
-  "sistema_joy" entra da destra con movimento scatto.
-
-Dal secondo 10.2 al secondo 15.2:
-  "crash_js" pulsa intensamente a ritmo freneticamente.
-  "sole" pulsa moderatamente a ritmo velocemente e cambia colore in #FDE68A.
-  "pianeta_luna" orbita attorno a "sole" con raggio 121 per 3 giri con movimento lineare.
-  "luna" orbita attorno a "terra" con raggio 32 per 9 giri in senso orario con movimento lineare.
-
-# 15.5s - 20.0s: Onda d'urto e payoff finale
-Dal secondo 15.5 al secondo 16.3:
-  "header_js" esce verso sinistra con movimento scatto.
-  "crash_js" esce verso sinistra con movimento scatto.
-  "badge_js" esce verso sinistra con movimento scatto.
-  "stat_js" esce verso sinistra con movimento scatto.
-  "onda_vittoria" si ingrandisce fino a 1.2 con movimento scatto.
-
-Dal secondo 16.3 al secondo 17.1:
-  "sfondo_finale" appare sfumando.
-  "payoff" appare sfumando, si ingrandisce fino a 1 e scivola verso alto di 15 con movimento elastico.
-
-Dal secondo 17.1 al secondo 18.0:
-  "firma_finale" appare sfumando e scivola verso alto di 10 con movimento morbido.
-
-Dal secondo 18.0 al secondo 20.0:
-  "firma_finale" pulsa leggermente a ritmo lentamente.
+# 13.0s - 15.0s: Chiusura Ultra-HD
+Dal secondo 13 al secondo 14.2:
+  "velo_finale" appare sfumando.
+  "titolo_finale" appare sfumando e si ingrandisce fino a 1 con movimento elastico.
+  "sottotitolo_finale" appare sfumando e scivola verso alto di 20 con movimento morbido.
