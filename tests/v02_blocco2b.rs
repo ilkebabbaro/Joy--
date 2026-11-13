@@ -415,7 +415,7 @@ fn gruppo_html_left_top_relativi_al_genitore() {
 
 #[test]
 fn gruppo_html_pretty_bilanciato() {
-    let opz = Opzioni { leggibile: true };
+    let opz = Opzioni { leggibile: true, ..Default::default() };
     let h = compila_sorgente(
         &src(&format!("{TRE_CERCHI}Crea un gruppo chiamato \"g\" con \"a\" e \"b\".\n")),
         &opz,

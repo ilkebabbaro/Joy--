@@ -56,8 +56,8 @@ fn primo_test_contiene_gli_elementi_attesi() {
 #[test]
 fn output_leggibile_e_compatto_equivalenti() {
     let src = fs::read_to_string(radice().join("examples/primo_test.joy")).unwrap();
-    let compatto = compila_sorgente(&src, &Opzioni { leggibile: false }).unwrap();
-    let leggibile = compila_sorgente(&src, &Opzioni { leggibile: true }).unwrap();
+    let compatto = compila_sorgente(&src, &Opzioni { leggibile: false, ..Default::default() }).unwrap();
+    let leggibile = compila_sorgente(&src, &Opzioni { leggibile: true, ..Default::default() }).unwrap();
     assert!(leggibile.len() > compatto.len());
     assert_eq!(compatto.lines().count(), 1);
     let senza_spazi = |s: &str| s.lines().map(str::trim_start).collect::<String>();

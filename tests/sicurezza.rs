@@ -210,7 +210,7 @@ fn gruppi_annidati_profondi_html_bilanciato() {
         prec = format!("g{i}");
     }
     s.push_str(&format!("Dal secondo 0 al secondo 1:\n  \"{prec}\" entra da sinistra.\n"));
-    for opzioni in [Opzioni::default(), Opzioni { leggibile: true }] {
+    for opzioni in [Opzioni::default(), Opzioni { leggibile: true, ..Default::default() }] {
         let out = compila_sorgente(&s, &opzioni).unwrap();
         let (aperti, chiusi) = conta_div(&out);
         assert_eq!(aperti, chiusi);

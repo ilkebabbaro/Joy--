@@ -11,7 +11,14 @@ Collega la pipeline al file system.
 - `osserva`: modalità *watch*, ricompila quando il sorgente cambia (polling dell'orario di
   modifica, senza dipendenze esterne). La callback riceve `Risultato<Esito>` a ogni compilazione.
 - Opzioni: percorso di output (`-o`), output leggibile (`--pretty`, default: compatto),
-  `--watch`.
+  `--watch`, `--senza-player` (B.5).
+
+**Contratto (v0.2 blocco 2C).**
+- `Opzioni { leggibile: bool, senza_player: bool }` (entrambi `false` di default). Si traduce
+  in `codegen::OpzioniHtml { leggibile, player: !senza_player }`.
+- `Compilazione { html, avvisi, durata: f64 (s), larghezza: f64, altezza: f64, fps: Option<u32> }`:
+  i metadati servono a `joypp render` (B.9). `fps` è quello dell'intestazione del palco.
+- `compila_sorgente` ha firma invariata.
 
 **Avvisi (SPECIFICA B.6).** Gli avvisi non bloccanti del compilatore non cambiano l'esito:
 la compilazione riuscita scrive l'HTML e termina con exit code 0. La CLI li stampa su

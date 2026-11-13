@@ -13,7 +13,7 @@
 //! (`translate`, `rotate`, `scale`, `opacity`): niente reflow, accelerazione GPU.
 
 use crate::ast::{Colore, Forma};
-use crate::codegen::numero;
+use crate::codegen::{OpzioniHtml, numero};
 use crate::compiler::easing::Curva;
 use crate::compiler::{Animazione, AttoreCompilato, Bersaglio, ScenaCompilata, Valore};
 use crate::security::escape_html;
@@ -40,9 +40,11 @@ impl Emettitore {
 
 /// Genera il documento HTML completo per una scena compilata.
 ///
-/// `leggibile = true` produce output indentato; altrimenti l'output è compatto.
-pub fn genera_html(scena: &ScenaCompilata, leggibile: bool) -> String {
-    let mut e = Emettitore { out: String::with_capacity(4096), leggibile };
+/// `opzioni.leggibile = true` produce output indentato; altrimenti l'output è compatto.
+/// `opzioni.player` abilita il mini-player (B.5).
+pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String {
+    // FASE 2: @renderer — `opzioni.player` è per ora ignorato.
+    let mut e = Emettitore { out: String::with_capacity(4096), leggibile: opzioni.leggibile };
     let (l, h) = (numero(scena.larghezza), numero(scena.altezza));
 
     e.riga(0, "<!DOCTYPE html>");
@@ -259,14 +261,17 @@ fn curva(c: &Curva) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::codegen::genera_html;
+    use crate::codegen::{OpzioniHtml, genera_html};
+
+    const COMPATTO: OpzioniHtml = OpzioniHtml { leggibile: false, player: true };
+    const LEGGIBILE: OpzioniHtml = OpzioniHtml { leggibile: true, player: true };
 
     fn html(sorgente: &str, scala: f64, rotazione: f64) -> String {
         let mut p = crate::parser::analizza(sorgente).expect("parse");
         p.attori[0].stile.scala = scala;
         p.attori[0].stile.rotazione = rotazione;
         let s = crate::compiler::compila(&p).expect("compila");
-        genera_html(&s, false)
+        genera_html(&s, &COMPATTO)
     }
 
     #[test]
@@ -330,7 +335,7 @@ mod tests {
 
     #[test]
     fn gruppi_annidati_compatto() {
-        let h = genera_html(&albero(), false);
+        let h = genera_html(&albero(), &COMPATTO);
         let corpo = h.split("<div id=\"palco\">").nth(1).expect("palco");
         let corpo = corpo.split("<script>").next().expect("script");
         let f = "<div class=\"forma\"></div>";
@@ -349,7 +354,7 @@ mod tests {
 
     #[test]
     fn gruppi_annidati_leggibile_indenta_per_profondita() {
-        let h = genera_html(&albero(), true);
+        let h = genera_html(&albero(), &LEGGIBILE);
         assert!(h.contains("\n  <div class=\"attore gruppo\" id=\"a0\""), "{h}");
         assert!(h.contains("\n    <div class=\"attore gruppo\" id=\"a2\""), "{h}");
         assert!(h.contains("\n      <div class=\"attore\" id=\"a3\""), "{h}");
@@ -369,7 +374,7 @@ mod tests {
                 Keyframe { offset: 1.0, valore: Valore::Rotazione(90.0), curva: None },
             ],
         });
-        let h = genera_html(&scena(vec![g]), false);
+        let h = genera_html(&scena(vec![g]), &COMPATTO);
         assert!(h.contains("#a0{left:10px;top:20px;z-index:3;opacity:1;scale:2;animation:a0-rotazione 2s linear both;will-change:rotate}"), "{h}");
         assert!(h.contains("@keyframes a0-rotazione{0%{rotate:0deg}100%{rotate:90deg}}"), "{h}");
         assert!(!h.contains("<b>"), "{h}");
@@ -401,7 +406,7 @@ mod tests {
             None,
         );
         t.animazioni.push(colore_anim());
-        let h = genera_html(&scena(vec![c, t]), false);
+        let h = genera_html(&scena(vec![c, t]), &COMPATTO);
         // Il wrapper non riceve animazione né will-change.
         assert!(h.contains("#a0{left:10px;top:20px;z-index:0;opacity:1}"), "{h}");
         assert!(h.contains("#a1{left:10px;top:20px;z-index:0;opacity:1}"), "{h}");
@@ -421,7 +426,7 @@ mod tests {
             keyframe: vec![Keyframe { offset: 0.0, valore: Valore::Traslazione(0.0, 0.0), curva: None }],
         });
         c.animazioni.push(colore_anim());
-        let h = genera_html(&scena(vec![c]), false);
+        let h = genera_html(&scena(vec![c]), &COMPATTO);
         assert!(h.contains("animation:a0-traslazione 2s linear both;will-change:translate}"), "{h}");
         assert!(h.contains("animation:a0-colore 2s linear both}"), "{h}");
     }
@@ -436,7 +441,7 @@ mod tests {
                 Keyframe { offset: 1.0, valore: Valore::Traslazione(5.0, 0.0), curva: None },
             ],
         });
-        let h = genera_html(&scena(vec![c]), false);
+        let h = genera_html(&scena(vec![c]), &COMPATTO);
         assert!(h.contains("0%{translate:0px 0px;animation-timing-function:steps(1,end)}"), "{h}");
     }
 

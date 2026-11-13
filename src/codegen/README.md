@@ -9,6 +9,13 @@ dalla `ScenaCompilata`.
 | `svg.rs`    | ⏳ futuro | Forme vettoriali complesse (linee, tracciati). |
 | `canvas.rs` | ⏳ futuro | Sistemi particellari ad alta densità. |
 
+## Contratto con `@exporter` (v0.2 blocco 2C)
+
+`pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String`, con
+`OpzioniHtml { leggibile: bool, player: bool }` (definita in `mod.rs`; `Default`:
+`leggibile: false`, `player: true`). `player` abilita il mini-player (B.5): per ora
+è ignorato (FASE 2: `@renderer`).
+
 ## Regole di performance
 - Si animano **solo** proprietà composite (`translate`, `rotate`, `scale`, `opacity`):
   nessun *layout thrashing*, accelerazione hardware, 60/120 FPS secondo il display.

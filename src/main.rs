@@ -1,7 +1,7 @@
 //! CLI `joypp`: compila un file `.joy` in un singolo file `.html` auto-contenuto.
 //!
 //! ```text
-//! joypp <file.joy> [-o <file.html>] [--pretty] [--watch]
+//! joypp <file.joy> [-o <file.html>] [--pretty] [--watch] [--senza-player]
 //! ```
 
 #![forbid(unsafe_code)]
@@ -23,6 +23,7 @@ Uso:
 Opzioni:
   -o, --output <file.html>   file di destinazione (predefinito: <file>.html)
       --pretty               HTML indentato e leggibile (predefinito: compatto)
+      --senza-player         omette il mini-player dall'HTML (predefinito: incluso)
       --watch                ricompila automaticamente a ogni salvataggio
   -h, --help                 mostra questo aiuto
   -V, --version              mostra la versione
@@ -60,6 +61,7 @@ fn interpreta(argomenti: impl Iterator<Item = String>) -> Result<Comando, String
                 uscita = Some(PathBuf::from(p));
             }
             "--pretty" => opzioni.leggibile = true,
+            "--senza-player" => opzioni.senza_player = true,
             "--watch" => osserva = true,
             opzione if opzione.starts_with('-') && opzione.len() > 1 => {
                 return Err(format!("opzione sconosciuta «{opzione}»"));

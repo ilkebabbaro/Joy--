@@ -7,6 +7,22 @@ pub mod dom;
 
 pub use dom::genera_html;
 
+/// Opzioni di generazione dell'HTML (contratto tra `@exporter` e `@renderer`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OpzioniHtml {
+    /// `true` per HTML indentato e leggibile (`--pretty`), `false` per output compatto.
+    pub leggibile: bool,
+    /// `true` per includere il mini-player (SPECIFICA B.5); `false` con `--senza-player`.
+    pub player: bool,
+}
+
+impl Default for OpzioniHtml {
+    /// Output compatto, con il mini-player incluso (B.5).
+    fn default() -> Self {
+        Self { leggibile: false, player: true }
+    }
+}
+
 /// Formatta un numero per CSS: al massimo 4 decimali, senza zeri finali né `-0`.
 pub fn numero(v: f64) -> String {
     let arrotondato = (v * 10_000.0).round() / 10_000.0;

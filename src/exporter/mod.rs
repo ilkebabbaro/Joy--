@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use crate::codegen::OpzioniHtml;
 use crate::errore::{Avviso, Errore, Risultato};
 use crate::security::limiti;
 use crate::{codegen, compiler, parser};
@@ -13,6 +14,9 @@ use crate::{codegen, compiler, parser};
 pub struct Opzioni {
     /// `true` per HTML indentato e leggibile (`--pretty`), `false` per output compatto.
     pub leggibile: bool,
+    /// `true` per omettere il mini-player (`--senza-player`, B.5). Predefinito: `false`
+    /// (player incluso). Si traduce in `OpzioniHtml { player: !senza_player }`.
+    pub senza_player: bool,
 }
 
 /// Esito di una compilazione riuscita: il documento HTML e gli avvisi non bloccanti
@@ -23,6 +27,14 @@ pub struct Compilazione {
     pub html: String,
     /// Avvisi non bloccanti; non impediscono la generazione dell'HTML.
     pub avvisi: Vec<Avviso>,
+    /// Durata totale della scena in secondi (`ScenaCompilata.durata`), per `joypp render`.
+    pub durata: f64,
+    /// Larghezza del palco in pixel.
+    pub larghezza: f64,
+    /// Altezza del palco in pixel.
+    pub altezza: f64,
+    /// FPS dichiarati dall'intestazione del palco (`a N fotogrammi`), se presenti.
+    pub fps: Option<u32>,
 }
 
 /// Esito di [`compila_file`] e [`osserva`]: byte scritti sul disco e avvisi da mostrare.
@@ -50,8 +62,17 @@ pub fn compila_con_avvisi(sorgente: &str, opzioni: &Opzioni) -> Risultato<Compil
     }
     let programma = parser::analizza(sorgente)?;
     let scena = compiler::compila(&programma)?;
-    let html = codegen::genera_html(&scena, opzioni.leggibile);
-    Ok(Compilazione { html, avvisi: scena.avvisi })
+    let opzioni_html =
+        OpzioniHtml { leggibile: opzioni.leggibile, player: !opzioni.senza_player };
+    let html = codegen::genera_html(&scena, &opzioni_html);
+    Ok(Compilazione {
+        html,
+        durata: scena.durata,
+        larghezza: scena.larghezza,
+        altezza: scena.altezza,
+        fps: scena.fps,
+        avvisi: scena.avvisi,
+    })
 }
 
 /// Compila un sorgente Joy++ in memoria e restituisce il solo documento HTML.
@@ -97,7 +118,7 @@ pub fn compila_file(ingresso: &Path, uscita: &Path, opzioni: &Opzioni) -> Risult
         Errore::globale(format!("«{}» non è un file di testo UTF-8", ingresso.display()))
             .con_suggerimento("salva il file con codifica UTF-8")
     })?;
-    let Compilazione { html, avvisi } = compila_con_avvisi(&sorgente, opzioni)?;
+    let Compilazione { html, avvisi, .. } = compila_con_avvisi(&sorgente, opzioni)?;
     if let Some(cartella) = uscita.parent().filter(|p| !p.as_os_str().is_empty()) {
         fs::create_dir_all(cartella).map_err(|e| {
             Errore::globale(format!("impossibile creare la cartella «{}»: {e}", cartella.display()))
