@@ -32,3 +32,22 @@ di default non viene emesso nulla (output v0.1 invariato byte per byte). `rotate
 `scale` sono proprietà CSS individuali con `transform-origin:0 0` nel centro
 dell'attore, quindi la regola statica si compone con i keyframe (il primo keyframe
 riporta lo stesso valore iniziale). Per i valori statici non serve `will-change`.
+
+## Gruppi e canale colore (v0.2 blocco 2B, B.3.5 e B.4.2)
+
+- **Gruppi:** `ScenaCompilata.attori` è in pre-ordine. `genera_html` usa una pila dei gruppi
+  aperti: prima di ogni attore chiude i `</div>` finché la cima coincide con `genitore`, poi
+  emette il wrapper. Un `Forma::Gruppo` diventa
+  `<div class="attore gruppo" id="aK" data-nome="…">` con i figli dentro e nessuna `.forma`
+  (e nessuna regola `#aK>.forma`); `data-nome` passa da `escape_html`. `left/top` sono già
+  relativi al genitore. Con `--pretty` il rientro cresce di un livello per profondità. Le
+  animazioni di un gruppo stanno sul suo wrapper come per un attore. Il `z-index` è per
+  wrapper (contesto di impilamento): l'ordine tra fratelli è quello del DOM.
+- **Canale colore:** `stile_attore` divide le animazioni per `Canale::bersaglio()`. I canali
+  `Wrapper` vanno in `#aK{animation;will-change}`; il canale `colore` (`Bersaglio::Forma`)
+  si aggiunge come `;animation:aK-colore Ds linear both` alla regola `#aK>.forma{…}` dopo le
+  proprietà statiche e il bordo, e non entra mai in `will-change` (non è composito: solo
+  repaint). Se il wrapper ha solo il canale colore non emette né `animation` né `will-change`.
+  Le keyframe usano `background-color` (cerchi, rettangoli) o `color` (testi).
+- **Salto istantaneo (B.0.3):** `Curva::Gradino` → `animation-timing-function:steps(1,end)`.
+- L'output senza gruppi e senza canale colore è identico byte per byte alla v0.1/v0.2 precedente.
