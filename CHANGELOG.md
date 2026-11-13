@@ -7,6 +7,11 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 ## [Unreleased]
 
 ### Aggiunto
+- Compilatore (`src/compiler`): risoluzione iterativa delle posizioni relative con rilevamento
+  dei cicli, ancoraggio dei blocchi relativi, canali di animazione indipendenti
+  (opacità, traslazione, rotazione, scala) con rilevamento delle sovrapposizioni,
+  keyframe pre-calcolati (inclusa l'espansione di `pulsa`) e curve `elastico`/`rimbalzo`
+  campionate in `linear(...)`.
 - Sicurezza (`src/security`): `escape_html`, `valida_nome_font` e limiti anti-DoS
   (dimensione sorgente, palco, attori, durata, keyframe, testi).
 - Parser (`src/parser`): lexer con normalizzazione di accenti ed elisioni e rimozione

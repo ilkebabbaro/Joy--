@@ -10,6 +10,7 @@
 #![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
 pub mod ast;
+pub mod compiler;
 pub mod errore;
 pub mod parser;
 pub mod security;
