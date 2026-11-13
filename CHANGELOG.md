@@ -9,6 +9,16 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 ### Aggiunto
 - Esempio `examples/livello1_motion.joy`: sigla di motion graphics "JOY++" di 6 secondi (19 attori), stress test creativo delle sole funzioni della v0.1.
 - Roadmap v0.2: `docs/BACKLOG_V02.md` (esito dello stress test) e `SPECIFICA.md` Appendice B (stato iniziale, entra da/esce verso, gruppi, orbita, cambia colore, mini-player, avvisi, esportazione video MP4 `joypp render` (B.9)).
+- Stato iniziale dichiarativo v0.2 (SPECIFICA B.1): proprietà `scala N` e `rotazione G gradi` nella frase `Crea`, valide per ogni tipo di attore; il compilatore le valida e il renderer le emette come `scale`/`rotate` statici sul wrapper dell'attore.
+- Avvisi non bloccanti v0.2 (SPECIFICA B.6): primo avviso, «rotazione invisibile su un cerchio», stampato su stderr senza cambiare l'exit code; nuova API `compila_con_avvisi` che restituisce `Compilazione { html, avvisi }`.
+- Esempio `examples/stato_iniziale.joy`: stato iniziale con scala e rotazione dichiarate alla creazione.
+
+### Corretto
+- Il suggerimento «forse intendevi "…"?» non propone più l'attore che si sta creando; i candidati sono ordinati per somiglianza.
+- Messaggi al singolare quando il valore è 1: «Poi per 1 secondo», «Dopo 1 secondo» (prima «1 secondi»).
+
+### Sicurezza
+- Il lexer rifiuta i caratteri bidirezionali (U+202A..U+202E, U+2066..U+2069, U+200E, U+200F, U+061C) e i separatori di riga Unicode (U+2028, U+2029), che potrebbero falsare il testo mostrato nei messaggi e negli avvisi ("Trojan Source"). Il controllo è `security::carattere_non_ammesso`.
 
 ## [0.1.0] - 2026-11-13
 
