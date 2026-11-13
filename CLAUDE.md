@@ -1,6 +1,6 @@
-# CLAUDE.md - Architettura Multi-Agente & Regole di Sviluppo ("Regia")
+# CLAUDE.md - Architettura Multi-Agente & Regole di Sviluppo ("Joy++")
 
-Questo file governa lo sviluppo del compilatore **Regia** (linguaggio dichiarativo naturale -> Rust -> HTML5/CSS3/Canvas).
+Questo file governa lo sviluppo del compilatore **Joy++** (linguaggio dichiarativo naturale -> Rust -> HTML5/CSS3/Canvas).
 Ogni sessione o sub-agente DEVE attenersi rigorosamente alla separazione dei ruoli, ai vincoli di modello e al protocollo di audit e commit.
 
 ---
@@ -14,10 +14,25 @@ Ogni sessione o sub-agente DEVE attenersi rigorosamente alla separazione dei ruo
 
 ## 2. Matrice dei Ruoli Specializzati (Sub-Agenti)
 
-Quando affronti un task, opera o delega secondo questi 7 ruoli distinti. Ogni agente lavora **esclusivamente** sui file di sua competenza.
+Quando affronti un task, **delega** secondo questi 7 ruoli distinti. Ogni agente lavora **esclusivamente** sui file di sua competenza.
+
+### Regola operativa: sub-agenti effettivi su modelli diversificati
+* La sessione principale fa da **orchestratore**: pianifica, assegna i ruoli e passa il contesto ai sub-agenti. **Non** svolge in prima persona il lavoro di un ruolo.
+* Ogni ruolo viene eseguito da un **sub-agente reale** (strumento `Agent`) avviato con il modello indicato nella tabella seguente, da passare **esplicitamente** con il parametro `model`:
+
+| Ruolo | Tier | `model` del sub-agente |
+|-------|------|------------------------|
+| `@auditor`, `@exporter` | Fast / Light | `"haiku"` |
+| `@parser`, `@renderer`, `@security`, `@debugger` | Balanced | `"sonnet"` |
+| `@compiler` | Reasoning | `"opus"` (unico ruolo autorizzato) |
+
+* Il prompt di ogni sub-agente deve includere: ruolo, file di competenza, obiettivo, vincoli di questo `CLAUDE.md` e il formato del report di handoff (§3.4).
+* Ruoli indipendenti possono essere eseguiti **in parallelo**; quelli dipendenti (es. `@compiler` → `@renderer`) vanno in sequenza.
+* Il campo *"Ruolo agente & Modello usato"* del report deve indicare il modello **effettivamente** usato dal sub-agente.
+* Il commit finale di ogni task viene sempre eseguito dal sub-agente `@auditor` (`model: "haiku"`).
 
 ### 1. `@parser` (Analisi Lessicale e Sintattica)
-* **Modello consigliato:** `Balanced` (es. Claude Sonnet)
+* **Modello obbligatorio:** `Balanced` → sub-agente `model: "sonnet"`
 * **Area di competenza:** `src/parser/`, `src/lexer/`
 * **Responsabilità:**
   * Tradurre il linguaggio naturale italiano in token e strutture sintattiche.
@@ -25,7 +40,7 @@ Quando affronti un task, opera o delega secondo questi 7 ruoli distinti. Ogni ag
   * Restituire messaggi di errore umani, chiari e in italiano con numero di riga e suggerimento di correzione.
 
 ### 2. `@compiler` (AST, Ottimizzazione & Timeline)
-* **Modello consigliato:** `Reasoning` (es. Claude Opus)
+* **Modello obbligatorio:** `Reasoning` → sub-agente `model: "opus"` (unico ruolo autorizzato a usare Opus)
 * **Area di competenza:** `src/ast/`, `src/compiler/`
 * **Responsabilità:**
   * Progettare e mantenere le strutture dati in memoria (`Palco`, `Attore`, `Timeline`, `Azione`).
@@ -33,21 +48,21 @@ Quando affronti un task, opera o delega secondo questi 7 ruoli distinti. Ogni ag
   * Calcolare le curve matematiche di easing e pre-compilare i keyframe per evitare calcoli inutili a runtime.
 
 ### 3. `@renderer` (Motore Grafico & Animazione)
-* **Modello consigliato:** `Balanced` (es. Claude Sonnet)
+* **Modello obbligatorio:** `Balanced` → sub-agente `model: "sonnet"`
 * **Area di competenza:** `src/codegen/dom.rs`, `src/codegen/svg.rs`, `src/codegen/canvas.rs`
 * **Responsabilità:**
   * Scrivere i template HTML5, CSS3 Keyframes / Web Animations API e il motore `<canvas>` per i sistemi particellari a 60/120 FPS.
   * Garantire fluidità visiva, accelerazione hardware (`transform`, `opacity`) e assenza di *layout thrashing*.
 
 ### 4. `@exporter` (Packaging, CLI & Output)
-* **Modello consigliato:** `Fast / Light` (es. Claude Haiku)
+* **Modello obbligatorio:** `Fast / Light` → sub-agente `model: "haiku"`
 * **Area di competenza:** `src/exporter/`, `src/main.rs` (CLI)
 * **Responsabilità:**
   * Assemblare l'output finale in un singolo file `.html` minificato o leggibile (flag `--pretty`).
-  * Gestire la lettura dei file `.regia`, il salvataggio su disco e la modalità *watch* (ricompilazione automatica al salvataggio).
+  * Gestire la lettura dei file `.joy`, il salvataggio su disco e la modalità *watch* (ricompilazione automatica al salvataggio).
 
 ### 5. `@security` (Sanitizzazione & Sicurezza Output)
-* **Modello consigliato:** `Balanced` (es. Claude Sonnet)
+* **Modello obbligatorio:** `Balanced` → sub-agente `model: "sonnet"`
 * **Area di competenza:** `src/security/`, revisione trasversale di `parser` e `codegen`
 * **Responsabilità:**
   * Prevenire attacchi XSS (Cross-Site Scripting) nell'HTML generato: sanitizzare rigorosamente stringhe utente (es. dentro `testo "..."` o URL immagini) prima di iniettarle nel DOM/JS.
@@ -55,15 +70,15 @@ Quando affronti un task, opera o delega secondo questi 7 ruoli distinti. Ogni ag
   * Verificare che il compilatore Rust non contenga blocchi `unsafe` non giustificati o `panic!` su input malformati.
 
 ### 6. `@debugger` (Testing, Profiling & Bugfixing)
-* **Modello consigliato:** `Balanced` (es. Claude Sonnet)
+* **Modello obbligatorio:** `Balanced` → sub-agente `model: "sonnet"`
 * **Area di competenza:** `tests/`, `benches/`, `examples/`
 * **Responsabilità:**
   * Scrivere unit test per ogni nuova parola chiave del parser e test di regressione per ogni bug risolto.
   * Eseguire `cargo test` e `cargo clippy` prima di dichiarare qualsiasi fix completato.
-  * Riprodurre i bug creando file `.regia` minimali nella cartella `tests/repro/`.
+  * Riprodurre i bug creando file `.joy` minimali nella cartella `tests/repro/`.
 
 ### 7. `@auditor` (Controllo Qualità, Documentazione & Git Master)
-* **Modello consigliato:** `Fast / Light` (es. Claude Haiku)
+* **Modello obbligatorio:** `Fast / Light` → sub-agente `model: "haiku"`
 * **Area di competenza:** `docs/`, `CHANGELOG.md`, `SPECIFICA.md`, stato di **Git**
 * **Responsabilità:**
   * È l'unico gatekeeper autorizzato a chiudere un task.
@@ -116,4 +131,4 @@ Nessun codice può essere considerato "finito" se non attraversa questa pipeline
 * Compilazione e check rapido: `cargo check`
 * Esecuzione suite di test: `cargo test`
 * Linter rigoroso: `cargo clippy --all-targets -- -D warnings`
-* Test di compilazione file esempio: `cargo run -- examples/sistema_solare.regia -o out.html`
+* Test di compilazione file esempio: `cargo run -- examples/primo_test.joy -o out.html`
