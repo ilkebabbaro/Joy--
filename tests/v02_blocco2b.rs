@@ -1344,11 +1344,33 @@ fn regressione_esempi_v01_senza_funzioni_v02_blocco_2b() {
 /// La regressione si restringe quindi alla parte che 2C non deve toccare. I riferimenti
 /// sono stati ricavati compilando gli esempi con il binario di d67175c in una copia
 /// temporanea fuori dal repository.
+///
+/// Indipendenza dalla versione: prima di calcolare lunghezza e hash, il valore di
+/// `<meta name="generator" content="Joy++ X.Y.Z">` è sostituito da `Joy++ VERSIONE`
+/// (la versione la verifica `meta_generator_contiene_la_versione_del_pacchetto`). Gli attesi
+/// sono stati ricalcolati una volta sulla parte normalizzata; la normalizzazione non nasconde
+/// altro, perché la parte normalizzata dell'HTML di d67175c (0.1.0) e quella del compilatore
+/// 0.2.0 sono risultate identiche byte per byte su tutti e tre gli esempi.
 const ATTESI: [(&str, usize, u64); 3] = [
-    ("primo_test", 4516, 18_401_684_762_150_092_797),
-    ("livello1_motion", 19291, 4_295_816_693_622_175_511),
-    ("stato_iniziale", 2637, 9_609_074_493_580_632_402),
+    ("primo_test", 4519, 11_949_312_300_093_106_593),
+    ("livello1_motion", 19294, 9_697_471_840_590_795_619),
+    ("stato_iniziale", 2640, 5_426_038_080_321_985_150),
 ];
+
+/// Sostituisce la versione nel meta generator con un segnaposto.
+fn normalizza_versione(prima: &str) -> String {
+    let apertura = "name=\"generator\" content=\"Joy++ ";
+    let i = prima.find(apertura).expect("meta generator") + apertura.len();
+    let fine = i + prima[i..].find('"').expect("virgolette del meta generator");
+    format!("{}VERSIONE{}", &prima[..i], &prima[fine..])
+}
+
+#[test]
+fn meta_generator_contiene_la_versione_del_pacchetto() {
+    let h = html("Prepara un palco grande 10 per 10.\n");
+    let atteso = format!("<meta name=\"generator\" content=\"Joy++ {}\">", env!("CARGO_PKG_VERSION"));
+    assert!(h.contains(&atteso), "{atteso} assente");
+}
 
 #[test]
 fn regressione_html_degli_esempi_v01_identico_byte_per_byte() {
@@ -1357,7 +1379,8 @@ fn regressione_html_degli_esempi_v01_identico_byte_per_byte() {
         let sorgente = std::fs::read_to_string(&percorso).unwrap();
         let opzioni = Opzioni { senza_player: true, ..Default::default() };
         let h = compila_sorgente(&sorgente, &opzioni).unwrap();
-        let prima = h.split("<script>").next().unwrap();
+        let prima = normalizza_versione(h.split("<script>").next().unwrap());
+        let prima = prima.as_str();
         assert_eq!((prima.len(), fnv(prima)), (lunghezza, hash), "{nome}: head/CSS/palco cambiati");
         assert!(h.ends_with("</script></body></html>"), "{nome}: chiusura inattesa");
         // Senza player nessuna traccia del player nel documento.
