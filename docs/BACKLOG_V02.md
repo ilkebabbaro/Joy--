@@ -66,3 +66,18 @@ Altri limiti:
 ---
 
 > La sintassi delle priorità 1-4 (e dell'avviso sui cerchi) è definita in `SPECIFICA.md`, Appendice B, scritta da `@compiler` (Opus).
+
+## Stato al rilascio 0.2.0
+
+Rilascio `v0.2.0` (2026-11-13).
+
+| # | Priorità | Stato | Dove |
+|---|----------|-------|------|
+| 1 | Stato iniziale dichiarativo (`scala`, `rotazione`) | Fatta | B.1, CHANGELOG 0.2.0 |
+| 2 | Mini-player nell'HTML (Play, Pausa, Replay, scrubber) | Fatta (con `--senza-player` per disattivarlo) | B.5 |
+| 3 | Gruppi annidati | Fatta (fino a 16 livelli) | B.3 |
+| 4 | `entra da` / `esce verso`, `orbita attorno a`, `cambia colore in` | Fatta | B.2, B.4.1, B.4.2 |
+| 5 | Rendering più leggero (`scaleX`/`scaleY`, dedup di `linear()`, `pulsa` più compatto, `will-change` mirato) | Rimandata | solo backlog |
+| 6 | Diagnostica: `--timeline`, avviso su `ruota` su cerchio, correzione dei difetti | Avviso sui cerchi e difetti diagnostici fatti; `--timeline` rimandata | B.6 |
+
+Oltre alle priorità del backlog, la 0.2.0 include l'esportazione video MP4 con `joypp render` (B.9), non prevista in questo backlog.

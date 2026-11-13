@@ -6,6 +6,10 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
+Release v0.2: stato iniziale (`scala`, `rotazione`), avvisi non bloccanti, gruppi annidati, `entra da` / `esce verso`, `orbita`, `cambia colore`, mini-player nell'HTML ed esportazione video MP4 con `joypp render`.
+
 ### Aggiunto
 - Esempio `examples/livello1_motion.joy`: sigla di motion graphics "JOY++" di 6 secondi (19 attori), stress test creativo delle sole funzioni della v0.1.
 - Roadmap v0.2: `docs/BACKLOG_V02.md` (esito dello stress test) e `SPECIFICA.md` Appendice B (stato iniziale, entra da/esce verso, gruppi, orbita, cambia colore, mini-player, avvisi, esportazione video MP4 `joypp render` (B.9)).
@@ -18,6 +22,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 - Verbo `cambia colore in` (SPECIFICA B.4.2): animazione del colore della forma, fuori da `will-change`.
 - Esempio `examples/sistema_orbitale.joy`: sottogruppo "pianeta" che orbita il sole.
 - Specifica: il `--fps` predefinito di `joypp render` segue `a N fotogrammi` dell'intestazione, con fallback 60 (SPECIFICA B.9.1).
+- Mini-player a scomparsa nell'HTML generato (SPECIFICA B.5): Play/Pausa, Replay, scrubber, scorciatoie Spazio, R e frecce; disattivabile con `--senza-player`.
+- `window.__joy_seek(ms)` nell'HTML generato: posiziona la scena su un istante con la Web Animations API, usato dal render video (B.9.2).
+- `joypp render <file.joy> [-o file.mp4] [--fps N] [--crf N]` (SPECIFICA B.9): esporta un video H.264 yuv420p con fps predefinito da `a N fotogrammi` o 60 e crf 18. Usa un client CDP senza dipendenze esterne e un browser headless di sistema (Chrome, Chromium o Edge); i PNG sono passati a ffmpeg.
 
 ### Corretto
 - Il suggerimento «forse intendevi "…"?» non propone più l'attore che si sta creando; i candidati sono ordinati per somiglianza.
@@ -28,6 +35,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 - Tetto globale di 200000 keyframe per scena (`MAX_KEYFRAME_TOTALI`, anti-DoS): senza tetto un'animazione di gruppi e orbite poteva produrre un HTML di oltre 1 GB.
 - Limite di profondità dei gruppi (`MAX_PROFONDITA_GRUPPI = 16`); i gruppi contano in `MAX_ATTORI`.
 - I caratteri bidirezionali e i separatori di riga Unicode sono bloccati anche nei nomi dei membri dei gruppi.
+- Limiti del render video in `security::limiti`, verificati prima dell'avvio del browser.
+- Output passato a ffmpeg come percorso assoluto con prefisso `file:`, senza possibilità di option injection.
+- Limite noto: la terminazione forzata del browser non è garantita in ogni caso (SPECIFICA B.9.4).
 
 ## [0.1.0] - 2026-11-13
 
