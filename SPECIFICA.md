@@ -148,3 +148,52 @@ Dal secondo 0 al secondo 8:
 Dal secondo 7 al secondo 8:
   "testo" scompare sfumando.
   "sole" si ingrandisce fino a 15 e cambia colore in bianco con movimento scatto.
+```
+
+---
+
+## Appendice A: Note di implementazione v0.1 (MVP)
+
+Questa appendice **non aggiunge sintassi**: precisa i valori predefiniti e le scelte che la
+specifica lascia aperte, così che il comportamento del compilatore sia deterministico.
+
+### A.1 Lessico
+* Una frase per riga. Le righe indentate (spazi o tab) appartengono all'ultimo blocco temporale.
+* Le parole sono confrontate senza maiuscole né accenti (`opacità` = `opacita`).
+* Le elisioni sono separate (`un'immagine` → `immagine`); sono ammesse le virgolette tipografiche `“ ”`.
+* I decimali usano il punto (`1.5`).
+
+### A.2 Valori predefiniti degli attori
+| Tipo | Predefiniti |
+|------|-------------|
+| `cerchio` | `raggio 50` |
+| `quadrato` | `lato 100` |
+| `rettangolo` | `larghezza 160`, `altezza 100` (oppure `lato` per entrambe) |
+| `titolo` | `grandezza 48`, `peso grassetto` (il `testo "..."` è obbligatorio) |
+| `testo` | `grandezza 24`, `peso normale` (il `testo "..."` è obbligatorio) |
+| tutti | `colore bianco`, `opacità 1.0`, `livello 0`, posizione `al centro` |
+
+* Le coordinate (`a X, Y`, `si sposta a X, Y`) indicano il **centro** dell'attore.
+* Le ancore del palco usano un margine del 10%: `in alto` = (50%, 10%), `in basso a destra` = (90%, 90%), ecc.
+* Le distanze relative (`a destra di "sole" di 200`) sono misurate tra i centri.
+* Lo sfondo del palco, se omesso, è `nero`.
+
+### A.3 Timeline
+* `Al secondo T:` dura 0.3 secondi. `Poi per D secondi:` inizia alla fine del blocco precedente
+  (nell'ordine del file); `Dopo A secondi per D secondi:` aggiunge un'attesa A.
+* Due azioni dello stesso attore che agiscono sulla stessa grandezza (opacità, posizione, scala,
+  rotazione) **non** possono sovrapporsi nel tempo: è un errore di compilazione.
+* `appare sfumando` porta l'opacità al valore dichiarato dall'attore (default 1.0); se è la prima
+  azione di opacità dell'attore, l'attore parte invisibile.
+* `ruota di N gradi` e `scivola verso` sono relativi allo stato raggiunto; `si sposta a` è assoluto.
+* `con movimento X` in fondo alla riga vale anche per le azioni precedenti della stessa riga
+  che non ne specificano uno. Il movimento predefinito è `morbido`.
+* `pulsa`: intensità predefinita `moderatamente` (0.5), ritmo predefinito `normalmente` (60 BPM).
+  La scala oscilla tra 1 e `1 + 0.25 × intensità`; il ritmo è in battiti al minuto (`lentamente` = 30 BPM)
+  e il numero di battiti viene arrotondato per riempire esattamente il blocco.
+
+### A.4 Funzioni non ancora supportate nella v0.1
+Producono un errore esplicito "non ancora supportato": tipi `linea`, `immagine`, `gruppo`,
+`particelle`; proprietà `ombra`, `sfocatura`; blocchi `Per tutta la durata:` e `In loop continuo:`;
+verbi `orbita`, `trema`, `fluttua`, `lascia una scia`, `gira`, `raggiunge`, `passa da scala`,
+`cambia colore` e le azioni particellari.
