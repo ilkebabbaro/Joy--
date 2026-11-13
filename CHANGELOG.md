@@ -6,6 +6,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Aggiunto
+- Esempio `examples/livello1_motion.joy`: sigla di motion graphics "JOY++" di 6 secondi (19 attori), stress test creativo delle sole funzioni della v0.1.
+
 ## [0.1.0] - 2026-11-13
 
 Prima versione (MVP) del compilatore Joy++: `joypp file.joy -o file.html`.

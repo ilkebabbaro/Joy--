@@ -1,0 +1,131 @@
+# ============================================================
+#  JOY++ — Sigla "Livello 1" (stress test creativo della v0.1)
+#  1280x720, 6 secondi. Solo funzioni della v0.1.
+#  Compila con: cargo run -- examples/livello1_motion.joy -o livello1_motion.html
+# ============================================================
+
+Prepara un palco grande 1280 per 720 con sfondo #0B0B14 a 60 fotogrammi.
+
+# ---------------------------------------------------------- SCENOGRAFIA
+# Rombo fantasma: cornice gigante quasi trasparente che gira per tutta la sigla.
+Crea un quadrato chiamato "rombo" con lato 440, colore trasparente, bordo 3 bianco e opacità 0.12 al centro.
+
+# Tre pannelli fuori campo a sinistra (bordo destro a x=0): lo "swipe" d'apertura.
+Crea un rettangolo chiamato "onda1" con larghezza 1500, altezza 800, colore #FF2E63 e livello 10 a -750, 360.
+Crea un rettangolo chiamato "onda2" con larghezza 1500, altezza 800, colore #08D9D6 e livello 11 a destra di "onda1" di 0.
+Crea un rettangolo chiamato "onda3" con larghezza 1500, altezza 800, colore #1B1B2F e livello 12 a destra di "onda1" di 0.
+
+# Barre d'accento che entrano dai lati opposti.
+Crea un rettangolo chiamato "barra alta" con larghezza 1280, altezza 6 e colore #08D9D6 a -640, 40.
+Crea un rettangolo chiamato "barra bassa" con larghezza 1280, altezza 6 e colore #FF2E63 a 1920, 680.
+
+# ---------------------------------------------------------- IL LOGO
+Crea un cerchio chiamato "anello" con raggio 175, colore trasparente, bordo 8 #08D9D6 e livello 5 al centro.
+Crea un cerchio chiamato "disco" con raggio 140, colore #FF2E63 e livello 6 al centro.
+Crea un titolo chiamato "logo" con testo "JOY++", grandezza 130, font "Arial Black", colore bianco e livello 8 sotto a "disco" di 80.
+Crea un testo chiamato "claim" con testo "ANIMAZIONI IN ITALIANO NATURALE", grandezza 24, peso grassetto, colore #08D9D6 e livello 8 sotto a "disco" di 215.
+
+# Badge di versione (coordinate assolute: le relative usano la posizione INIZIALE del logo).
+Crea un rettangolo chiamato "badge" con larghezza 120, altezza 44, arrotondamento 22, colore #FFD166 e livello 9 a 905, 280.
+Crea un testo chiamato "versione" con testo "v0.1", grandezza 22, peso grassetto, colore #0B0B14 e livello 9 a 905, 280.
+
+# Angoli-cornice (due "L" fatte di barre), partono fuori posizione di 200 px.
+Crea un rettangolo chiamato "angolo h1" con larghezza 100, altezza 8, colore bianco e livello 7 a 180, 134.
+Crea un rettangolo chiamato "angolo v1" con larghezza 8, altezza 100, colore bianco e livello 7 a 334, -20.
+Crea un rettangolo chiamato "angolo h2" con larghezza 100, altezza 8, colore bianco e livello 7 a 1100, 586.
+Crea un rettangolo chiamato "angolo v2" con larghezza 8, altezza 100, colore bianco e livello 7 a 946, 740.
+
+# Due "pixel" che percorrono un quadrato attorno al logo.
+Crea un quadrato chiamato "pixel1" con lato 22, arrotondamento 4, colore #FFD166 e livello 7 a 1040, 180.
+Crea un quadrato chiamato "pixel2" con lato 22, arrotondamento 4, colore #08D9D6 e livello 7 a 240, 540.
+
+# Flash finale.
+Crea un rettangolo chiamato "lampo" con larghezza 1280, altezza 720, colore bianco, opacità 0 e livello 20 al centro.
+
+# ---------------------------------------------------------- ATTO 0: setup istantaneo
+# La v0.1 non ha una "scala iniziale": la si imposta con un blocco di 10 ms.
+Dal secondo 0 al secondo 0.01:
+  "anello" si rimpicciolisce fino a 0 con movimento lineare.
+  "disco" si rimpicciolisce fino a 0 con movimento lineare.
+  "logo" si rimpicciolisce fino a 0.6 con movimento lineare.
+  "badge" si rimpicciolisce fino a 0 con movimento lineare.
+  "versione" si rimpicciolisce fino a 0 con movimento lineare.
+
+# ---------------------------------------------------------- ATTO 1: swipe d'apertura
+Dal secondo 0 al secondo 6:
+  "rombo" ruota di 135 gradi con movimento lineare e pulsa leggermente a ritmo lentamente.
+
+Dal secondo 0 al secondo 0.9:
+  "onda1" scivola verso destra di 2780 con movimento scatto.
+
+Dal secondo 0.15 al secondo 1.05:
+  "onda2" scivola verso destra di 2780 con movimento scatto.
+
+Dal secondo 0.3 al secondo 1.2:
+  "onda3" scivola verso destra di 2780 con movimento scatto.
+
+# ---------------------------------------------------------- ATTO 2: il logo esplode
+Dal secondo 0.9 al secondo 1.7:
+  "anello" appare sfumando e si ingrandisce fino a 1 con movimento elastico.
+
+Dal secondo 1 al secondo 1.8:
+  "disco" appare sfumando e si ingrandisce fino a 1 con movimento rimbalzo.
+
+Dal secondo 1.2 al secondo 2:
+  "logo" appare sfumando, scivola verso alto di 80 e si ingrandisce fino a 1 con movimento scatto.
+  "angolo h1" appare sfumando e scivola verso destra di 200 con movimento rimbalzo.
+  "angolo v1" appare sfumando e scivola verso basso di 200 con movimento rimbalzo.
+  "angolo h2" appare sfumando e scivola verso sinistra di 200 con movimento rimbalzo.
+  "angolo v2" appare sfumando e scivola verso alto di 200 con movimento rimbalzo.
+
+Poi per 0.6 secondi:
+  "claim" appare sfumando e scivola verso alto di 20 con movimento morbido.
+
+# Badge: 0.2 s dopo il claim.
+Dopo 0.2 secondi per 0.6 secondi:
+  "badge" appare sfumando, si ingrandisce fino a 1 e ruota di -8 gradi con movimento elastico.
+  "versione" appare sfumando, si ingrandisce fino a 1 e ruota di -8 gradi con movimento elastico.
+
+# ---------------------------------------------------------- ATTO 3: energia
+Dal secondo 2.4 al secondo 4.4:
+  "disco" pulsa intensamente a ritmo velocemente.
+  "anello" pulsa leggermente a ritmo normalmente.
+  "pixel1" ruota di 720 gradi con movimento lineare.
+  "pixel2" ruota di -720 gradi con movimento lineare.
+
+Dal secondo 2.4 al secondo 3:
+  "barra alta" scivola verso destra di 1280 con movimento scatto.
+  "barra bassa" scivola verso sinistra di 1280 con movimento scatto.
+  "pixel1" appare sfumando e scivola verso sinistra di 800 con movimento scatto.
+  "pixel2" appare sfumando e scivola verso destra di 800 con movimento scatto.
+
+Poi per 0.5 secondi:
+  "pixel1" scivola verso basso di 360 con movimento scatto.
+  "pixel2" scivola verso alto di 360 con movimento scatto.
+
+Poi per 0.5 secondi:
+  "pixel1" scivola verso destra di 800 con movimento scatto.
+  "pixel2" scivola verso sinistra di 800 con movimento scatto.
+
+Poi per 0.5 secondi:
+  "pixel1" scivola verso alto di 360 con movimento scatto.
+  "pixel2" scivola verso basso di 360 con movimento scatto.
+
+# ---------------------------------------------------------- ATTO 4: finale
+Dal secondo 4.5 al secondo 5.3:
+  "logo" si ingrandisce fino a 1.3 con movimento elastico.
+  "claim" scompare sfumando e scivola verso basso di 20.
+  "badge" scompare sfumando e si rimpicciolisce fino a 0 con movimento scatto.
+  "versione" scompare sfumando e si rimpicciolisce fino a 0 con movimento scatto.
+  "pixel1" scompare sfumando.
+  "pixel2" scompare sfumando.
+
+Dal secondo 4.6 al secondo 5.3:
+  "disco" si rimpicciolisce fino a 0 con movimento scatto.
+  "anello" si ingrandisce fino a 3 e scompare sfumando con movimento scatto.
+
+Al secondo 5.3:
+  "lampo" cambia opacità a 0.85 con movimento lineare.
+
+Poi per 0.4 secondi:
+  "lampo" scompare sfumando con movimento morbido.
