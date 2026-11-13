@@ -1,0 +1,148 @@
+# ============================================================
+#  JOY++ v0.2 — Sfida Frenetica: Framework JS vs Joy++ (20s)
+#  HTML con player: cargo run -- examples/sfida_hyperframe_20s.joy -o sfida.html
+#  Render MP4:      cargo run -- render examples/sfida_hyperframe_20s.joy -o sfida.mp4
+# ============================================================
+
+Prepara un palco grande 1280 per 720 con sfondo #090D16 a 60 fotogrammi.
+
+# ---------------------------------------------------------- SCENOGRAFIA & HEADER
+Crea un rettangolo chiamato "sfondo_js" con larghezza 640, altezza 720, colore #161018 e livello 0 a 320, 360.
+Crea un rettangolo chiamato "sfondo_joy" con larghezza 640, altezza 720, colore #0B1922 e livello 0 a 960, 360.
+Crea un rettangolo chiamato "divisore" con larghezza 4, altezza 720, colore bianco, scala 0 e livello 10 al centro.
+
+Crea un titolo chiamato "titolo_js" con testo "FRAMEWORK JS", grandezza 34, colore #FF4D6D e livello 8 a 320, 75.
+Crea un testo chiamato "sub_js" con testo "React • Node • Boilerplate", grandezza 18, colore #94A3B8 e livello 8 a 320, 112.
+Crea un gruppo chiamato "header_js" con "titolo_js" e "sub_js", livello 8.
+
+Crea un titolo chiamato "titolo_joy" con testo "JOY++ v0.2", grandezza 36, colore #00F5D4 e livello 8 a 960, 75.
+Crea un testo chiamato "sub_joy" con testo "Italiano • Zero Dipendenze • Rust", grandezza 18, colore #E2E8F0 e livello 8 a 960, 112.
+Crea un gruppo chiamato "header_joy" con "titolo_joy" e "sub_joy", livello 8.
+
+# ---------------------------------------------------------- ATTO 1: SETUP & CODICE (2.5s - 8.5s)
+# Lato JS: valanga di righe e metriche rosse
+Crea un rettangolo chiamato "box_js" con larghezza 520, altezza 310, arrotondamento 14, colore #1E1524, bordo 2 #FF4D6D, scala 0 e livello 3 a 320, 340.
+Crea un testo chiamato "riga1_js" con testo "import { useCurrentFrame } from 'js';", grandezza 19, colore #FCA5A5 e livello 5 a 320, 235.
+Crea un testo chiamato "riga2_js" con testo "const f = interpolate(frame,[0,60],[0,1]);", grandezza 19, colore #FCA5A5 e livello 5 a 320, 285.
+Crea un testo chiamato "riga3_js" con testo "const rad = (f * 360 * Math.PI) / 180;", grandezza 19, colore #FCA5A5 e livello 5 a 320, 335.
+Crea un testo chiamato "riga4_js" con testo "return <div style={{transform:...}} />;", grandezza 19, colore #FCA5A5 e livello 5 a 320, 385.
+Crea un testo chiamato "riga5_js" con testo "// + 138 righe di config & build...", grandezza 19, colore #94A3B8 e livello 5 a 320, 435.
+
+Crea un rettangolo chiamato "badge_js" con larghezza 440, altezza 54, arrotondamento 27, colore #7F1D1D, scala 0 e livello 6 a 320, 565.
+Crea un testo chiamato "stat_js" con testo "142 RIGHE  •  1.850 TOKEN", grandezza 22, peso grassetto, colore #FECACA e livello 7 a 320, 565.
+
+# Lato Joy++: 3 righe pulite e metriche verdi
+Crea un rettangolo chiamato "box_joy" con larghezza 520, altezza 310, arrotondamento 14, colore #0E2430, bordo 2 #00F5D4, scala 0 e livello 3 a 960, 340.
+Crea un testo chiamato "riga1_joy" con testo "Crea un cerchio chiamato ‘terra’...", grandezza 20, colore #A7F3D0 e livello 5 a 960, 275.
+Crea un testo chiamato "riga2_joy" con testo "‘terra’ orbita attorno a ‘sole’", grandezza 20, colore #A7F3D0 e livello 5 a 960, 340.
+Crea un testo chiamato "riga3_joy" con testo "  con raggio 121 per 3 giri.", grandezza 20, colore #6EE7B7 e livello 5 a 960, 405.
+
+Crea un rettangolo chiamato "badge_joy" con larghezza 440, altezza 54, arrotondamento 27, colore #065F46, scala 0 e livello 6 a 960, 565.
+Crea un testo chiamato "stat_joy" con testo "3 RIGHE  •  48 TOKEN", grandezza 24, peso grassetto, colore #6EE7B7 e livello 7 a 960, 565.
+
+# ---------------------------------------------------------- ATTO 2: MOTORE DAL VIVO (8.5s - 15.5s)
+# Lato JS: crash / errore di compilazione
+Crea un rettangolo chiamato "err_box" con larghezza 480, altezza 170, arrotondamento 16, colore #991B1B, bordo 3 #FCA5A5, scala 0, rotazione -6 e livello 9 a 320, 350.
+Crea un titolo chiamato "err_titolo" con testo "TypeError: NaN", grandezza 34, colore bianco e livello 10 a 320, 325.
+Crea un testo chiamato "err_sub" con testo "Build fallita dopo 14.2 secondi", grandezza 20, colore #FECACA e livello 10 a 320, 375.
+Crea un gruppo chiamato "crash_js" con "err_box", "err_titolo" e "err_sub", livello 9.
+
+# Lato Joy++: sistema orbitale vivo (Sole + Terra + Luna annidati)
+Crea un cerchio chiamato "sole" con raggio 42, colore #F59E0B e livello 6 a 960, 350.
+Crea un cerchio chiamato "terra" con raggio 16, colore #38BDF8 e livello 7 a 1070, 350.
+Crea un cerchio chiamato "luna" con raggio 6, colore bianco e livello 8 a 1102, 350.
+Crea un gruppo chiamato "pianeta_luna" con "terra" e "luna", livello 7.
+Crea un gruppo chiamato "sistema_joy" con "sole" e "pianeta_luna", livello 6.
+
+# ---------------------------------------------------------- ATTO 3: FINALE ESPLOSIVO (15.5s - 20s)
+Crea un rettangolo chiamato "onda_vittoria" con larghezza 1400, altezza 720, colore #00F5D4, scala 0 e livello 15 al centro.
+Crea un rettangolo chiamato "sfondo_finale" con larghezza 1280, altezza 720, colore #090D16 e livello 16 al centro.
+Crea un titolo chiamato "payoff" con testo "DIRIGI I PIXEL. NON PROGRAMMARLI.", grandezza 44, colore bianco, scala 0.5 e livello 18 a 640, 325.
+Crea un testo chiamato "firma_finale" con testo "JOY++ v0.2  •  Compilato in 0.4 ms  •  Export MP4 nativo", grandezza 24, colore #00F5D4 e livello 18 a 640, 405.
+
+# ========================================================== TIMELINE (20 SECONDI)
+
+# 0.0s - 2.0s: Apertura a taglio
+Dal secondo 0 al secondo 0.7:
+  "divisore" si ingrandisce fino a 1 con movimento scatto.
+  "header_js" entra dall'alto con movimento scatto.
+  "header_joy" entra dall'alto con movimento scatto.
+
+# 2.0s - 4.5s: Compaiono i box codice
+Dal secondo 2 al secondo 2.8:
+  "box_js" si ingrandisce fino a 1 con movimento scatto.
+  "box_joy" si ingrandisce fino a 1 con movimento scatto.
+
+# Pioggia frenetica di righe JS vs 3 righe Joy++
+Dal secondo 2.8 al secondo 3.3:
+  "riga1_js" appare sfumando.
+  "riga1_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+
+Dal secondo 3.3 al secondo 3.8:
+  "riga2_js" appare sfumando.
+  "riga2_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+
+Dal secondo 3.8 al secondo 4.3:
+  "riga3_js" appare sfumando.
+  "riga3_joy" appare sfumando e scivola verso alto di 10 con movimento scatto.
+
+Dal secondo 4.3 al secondo 4.8:
+  "riga4_js" appare sfumando.
+
+Dal secondo 4.8 al secondo 5.3:
+  "riga5_js" appare sfumando.
+
+# 5.3s - 8.5s: Confronto metriche (142 righe vs 3 righe)
+Dal secondo 5.3 al secondo 6.1:
+  "badge_js" si ingrandisce fino a 1 con movimento rimbalzo.
+  "stat_js" appare sfumando.
+  "badge_joy" si ingrandisce fino a 1 con movimento elastico.
+  "stat_joy" appare sfumando.
+
+Dal secondo 6.1 al secondo 8.3:
+  "badge_js" pulsa intensamente a ritmo freneticamente e cambia colore in #DC2626.
+  "badge_joy" pulsa leggermente a ritmo normalmente e cambia colore in #059669.
+
+# 8.5s - 15.5s: Via il codice, spazio all'esecuzione dal vivo!
+Dal secondo 8.5 al secondo 9.2:
+  "box_js" si rimpicciolisce fino a 0 con movimento scatto.
+  "riga1_js" scompare sfumando.
+  "riga2_js" scompare sfumando.
+  "riga3_js" scompare sfumando.
+  "riga4_js" scompare sfumando.
+  "riga5_js" scompare sfumando.
+  "box_joy" si rimpicciolisce fino a 0 con movimento scatto.
+  "riga1_joy" scompare sfumando.
+  "riga2_joy" scompare sfumando.
+  "riga3_joy" scompare sfumando.
+
+# A sinistra esplode l'errore JS; a destra entra il sistema orbitale Joy++
+Dal secondo 9.2 al secondo 10.2:
+  "err_box" si ingrandisce fino a 1 e ruota di 6 gradi con movimento rimbalzo.
+  "err_titolo" appare sfumando.
+  "err_sub" appare sfumando.
+  "sistema_joy" entra da destra con movimento scatto.
+
+Dal secondo 10.2 al secondo 15.2:
+  "crash_js" pulsa intensamente a ritmo freneticamente.
+  "sole" pulsa moderatamente a ritmo velocemente e cambia colore in #FDE68A.
+  "pianeta_luna" orbita attorno a "sole" con raggio 121 per 3 giri con movimento lineare.
+  "luna" orbita attorno a "terra" con raggio 32 per 9 giri in senso orario con movimento lineare.
+
+# 15.5s - 20.0s: Onda d'urto e payoff finale
+Dal secondo 15.5 al secondo 16.3:
+  "header_js" esce verso sinistra con movimento scatto.
+  "crash_js" esce verso sinistra con movimento scatto.
+  "badge_js" esce verso sinistra con movimento scatto.
+  "stat_js" esce verso sinistra con movimento scatto.
+  "onda_vittoria" si ingrandisce fino a 1.2 con movimento scatto.
+
+Dal secondo 16.3 al secondo 17.1:
+  "sfondo_finale" appare sfumando.
+  "payoff" appare sfumando, si ingrandisce fino a 1 e scivola verso alto di 15 con movimento elastico.
+
+Dal secondo 17.1 al secondo 18.0:
+  "firma_finale" appare sfumando e scivola verso alto di 10 con movimento morbido.
+
+Dal secondo 18.0 al secondo 20.0:
+  "firma_finale" pulsa leggermente a ritmo lentamente.
