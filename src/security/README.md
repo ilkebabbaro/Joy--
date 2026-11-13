@@ -9,6 +9,10 @@ Funzioni pure usate da parser, compilatore e generatore.
   già validato: id e nomi `@keyframes` sono generati (`a0`, `a0-opacita`).
 - Il lexer rifiuta i caratteri di controllo (es. `ESC`), che altrimenti verrebbero
   ristampati nei messaggi d'errore e potrebbero manipolare il terminale.
+- `carattere_non_ammesso`: oltre ai caratteri di controllo, copre i caratteri bidirezionali
+  (U+202A..202E, U+2066..2069, U+200E/F, U+061C) e i separatori di riga U+2028/2029, che
+  `char::is_control` non rileva e che potrebbero falsare le righe mostrate nei messaggi
+  e negli avvisi ("Trojan Source"). Il lexer deve usarla al posto di `is_control`.
 - `valida_nome_font`: un nome di font finisce dentro il CSS, quindi sono ammessi solo
   lettere (anche accentate), cifre, spazi, `-` e `_`. Qualsiasi altro carattere
   (`"`, `;`, `<`, `{`, ...) è un errore di compilazione.

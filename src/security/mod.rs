@@ -58,6 +58,25 @@ pub fn escape_html(testo: &str) -> String {
     out
 }
 
+/// Indica se `c` è un carattere che non deve mai entrare nei sorgenti né nei messaggi
+/// mostrati sul terminale: i caratteri di controllo (tranne la tabulazione, quindi anche
+/// `ESC`) e i caratteri Unicode invisibili che riordinano o falsano il testo mostrato
+/// ("Trojan Source": `U+202A..U+202E`, `U+2066..U+2069`, `U+200E`, `U+200F`, `U+061C`)
+/// o spezzano la riga (`U+2028`, `U+2029`). `char::is_control` da solo non li copre.
+pub fn carattere_non_ammesso(c: char) -> bool {
+    (c.is_control() && c != '\t')
+        || matches!(
+            c,
+            '\u{061C}'
+                | '\u{200E}'
+                | '\u{200F}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{202A}'..='\u{202E}'
+                | '\u{2066}'..='\u{2069}'
+        )
+}
+
 /// Verifica che un nome di font possa essere inserito in sicurezza in una
 /// dichiarazione CSS `font-family: "..."`.
 ///
@@ -101,6 +120,16 @@ mod test {
     #[test]
     fn escape_rimuove_controlli() {
         assert_eq!(escape_html("a\u{0}b\u{1b}c"), "abc");
+    }
+
+    #[test]
+    fn caratteri_non_ammessi() {
+        for c in ['\u{1b}', '\0', '\u{85}', '\u{202e}', '\u{2066}', '\u{2069}', '\u{200f}', '\u{2028}'] {
+            assert!(carattere_non_ammesso(c), "{c:?}");
+        }
+        for c in ['a', 'è', ' ', '\t', '«', '😀'] {
+            assert!(!carattere_non_ammesso(c), "{c:?}");
+        }
     }
 
     #[test]
