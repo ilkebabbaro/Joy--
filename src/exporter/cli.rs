@@ -131,7 +131,7 @@ pub fn interpreta(argomenti: impl IntoIterator<Item = String>) -> Result<Comando
             "--profilo-json" => {
                 if !render {
                     return Err(Errore::globale(format!("l'opzione «{a}» vale solo con «joypp render»"))
-                        .con_suggerimento("es. «joypp render scena.joy --profilo-json profilo.json»"));
+                        .con_suggerimento("es. «joypp render scena.joy --profilo»"));
                 }
                 let p = it
                     .next()
@@ -318,10 +318,7 @@ mod test {
         assert_eq!(e.suggerimento.as_deref(), Some("es. «joypp render scena.joy --profilo»"));
         let e = interpreta(["s.joy", "--profilo-json", "x.json"].map(String::from)).unwrap_err();
         assert_eq!(e.messaggio, "l'opzione «--profilo-json» vale solo con «joypp render»");
-        assert_eq!(
-            e.suggerimento.as_deref(),
-            Some("es. «joypp render scena.joy --profilo-json profilo.json»")
-        );
+        assert_eq!(e.suggerimento.as_deref(), Some("es. «joypp render scena.joy --profilo»"));
     }
 
     #[test]

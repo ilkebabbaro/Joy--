@@ -16,16 +16,21 @@ pub mod websocket;
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::ast::Colore;
 use crate::errore::{Errore, Risultato};
 use crate::security::limiti;
-use crate::exporter::{Compilazione, Opzioni, compila_con_sfondo, leggi_sorgente};
+use crate::exporter::{Compilazione, Opzioni, compila_misurando, leggi_sorgente};
 
-use browser::{Browser, Sistema};
+use browser::{Browser, Sistema, ripulisci_riga};
 use cdp::{ErroreCdp, Sessione};
+use ffmpeg::TempiFfmpeg;
 use json::Valore;
+use profilo::{
+    Ambiente, Dati, Fasi, MisureFfmpeg, MisureScena, MisureVideo, Memoria, PerFotogramma, Prestazioni,
+    Profilo, Statistica,
+};
 
 
 /// FPS predefinito quando né `--fps` né l'intestazione lo indicano.
@@ -425,11 +430,155 @@ fn prepara_pagina(s: &mut Sessione, b: &mut Browser, url: &str, p: &Piano) -> Ri
     }
 }
 
-/// Cattura il fotogramma `k` (posizionamento con `__joy_seek` + screenshot PNG).
-fn cattura(s: &mut Sessione, b: &mut Browser, p: &Piano, k: u64) -> Risultato<Vec<u8>> {
+/// Campioni grezzi della diagnostica (C.1.3), raccolti solo con `--profilo`: durate per
+/// fotogramma in microsecondi e byte. Con il profilo spento non vengono mai creati.
+#[derive(Debug, Default)]
+struct Campioni {
+    /// Andata e ritorno di `Runtime.evaluate` con `__joy_seek`, in µs.
+    seek: Vec<u64>,
+    /// Andata e ritorno di `Page.captureScreenshot`, in µs.
+    screenshot: Vec<u64>,
+    /// Decodifica base64, in µs.
+    base64: Vec<u64>,
+    /// Verifica delle dimensioni PNG, in µs.
+    verifica_png: Vec<u64>,
+    /// Tempo dentro `Ffmpeg::invia`, in µs.
+    attesa_coda: Vec<u64>,
+    /// Byte PNG totali.
+    byte_png_totali: u64,
+    /// Byte del PNG più grande.
+    byte_png_max: u64,
+    /// Byte base64 totali ricevuti dal browser.
+    byte_base64_totali: u64,
+}
+
+/// Durata in microsecondi, saturata a `u64::MAX`.
+fn micros(d: Duration) -> u64 {
+    u64::try_from(d.as_micros()).unwrap_or(u64::MAX)
+}
+
+/// Durata in millisecondi.
+fn ms(d: Duration) -> f64 {
+    d.as_secs_f64() * 1000.0
+}
+
+/// Registra una durata nel campo indicato, solo se il profilo è attivo.
+fn registra(
+    campioni: &mut Option<Campioni>,
+    campo: impl FnOnce(&mut Campioni) -> &mut Vec<u64>,
+    d: Duration,
+) {
+    if let Some(c) = campioni.as_mut() {
+        campo(c).push(micros(d));
+    }
+}
+
+/// Frequenza `numeratore / secondi`, con `secondi = durata_ms / 1000`. `None` se il
+/// denominatore non è positivo o il risultato non è finito (C.1.3, «Prestazioni»).
+fn quoziente(numeratore: f64, durata_ms: f64) -> Option<f64> {
+    let secondi = durata_ms / 1000.0;
+    if secondi <= 0.0 {
+        return None;
+    }
+    let risultato = numeratore / secondi;
+    risultato.is_finite().then_some(risultato)
+}
+
+/// Picco di memoria residente di joypp (`VmHWM`), in byte. Solo Linux: altrove `None`.
+#[cfg(target_os = "linux")]
+fn picco_processo() -> Option<u64> {
+    let stato = fs::read_to_string("/proc/self/status").ok()?;
+    let riga = stato.lines().find(|r| r.starts_with("VmHWM:"))?;
+    let kb: u64 = riga.split_whitespace().nth(1)?.parse().ok()?;
+    kb.checked_mul(1024)
+}
+
+/// Picco di memoria residente: non misurabile senza `unsafe` o dipendenze (C.1.3).
+#[cfg(not(target_os = "linux"))]
+fn picco_processo() -> Option<u64> {
+    None
+}
+
+/// Versione del browser (`product` di `Browser.getVersion`). Un errore non interrompe il render:
+/// il valore è `None` (C.1.2).
+fn leggi_versione_browser(s: &mut Sessione) -> Option<String> {
+    s.comando_globale("Browser.getVersion", "{}", limiti::TIMEOUT_COMANDO_CDP)
+        .ok()
+        .and_then(|r| r.campo("product").and_then(Valore::testo).map(ripulisci_riga))
+}
+
+/// Assembla il rapporto di diagnostica a render riuscito (C.1.3).
+fn costruisci_profilo(
+    c: Campioni,
+    fasi: Fasi,
+    scena: MisureScena,
+    video: MisureVideo,
+    tempi_ffmpeg: TempiFfmpeg,
+    versione_browser: Option<String>,
+    versione_ffmpeg: Option<String>,
+) -> Profilo {
+    let picco = picco_processo();
+    let n = video.fotogrammi as f64;
+    let secondi_video = n / f64::from(video.fps);
+    let prestazioni = Prestazioni {
+        fps_ciclo: quoziente(n, fasi.ciclo_fotogrammi),
+        fps_totale: quoziente(n, fasi.totale),
+        rapporto_tempo_reale: quoziente(secondi_video, fasi.totale),
+    };
+    let stima = (ffmpeg::CODA_FOTOGRAMMI as u64 + 2).saturating_mul(c.byte_png_max);
+    Profilo {
+        schema: profilo::SCHEMA.to_string(),
+        ambiente: Ambiente {
+            joypp: env!("CARGO_PKG_VERSION").to_string(),
+            build: if cfg!(debug_assertions) { "debug" } else { "release" }.to_string(),
+            os: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
+            thread_logici: std::thread::available_parallelism().ok().map(std::num::NonZeroUsize::get),
+            browser: versione_browser,
+            ffmpeg: versione_ffmpeg,
+        },
+        scena,
+        video,
+        fasi_ms: fasi,
+        fotogramma_ms: PerFotogramma {
+            seek: Statistica::da_microsecondi(&c.seek),
+            screenshot: Statistica::da_microsecondi(&c.screenshot),
+            base64: Statistica::da_microsecondi(&c.base64),
+            verifica_png: Statistica::da_microsecondi(&c.verifica_png),
+            attesa_coda: Statistica::da_microsecondi(&c.attesa_coda),
+        },
+        ffmpeg: MisureFfmpeg {
+            scrittura_pipe_ms: ms(tempi_ffmpeg.scrittura_pipe),
+            coda_capacita: ffmpeg::CODA_FOTOGRAMMI,
+            fotogrammi_con_coda_piena: tempi_ffmpeg.coda_piena,
+        },
+        dati: Dati {
+            byte_png_totali: c.byte_png_totali,
+            byte_png_max: c.byte_png_max,
+            byte_base64_totali: c.byte_base64_totali,
+        },
+        prestazioni,
+        memoria: Memoria {
+            picco_processo_byte: picco,
+            picco_processo_fonte: if picco.is_some() { "VmHWM" } else { "non disponibile" }.to_string(),
+            stima_buffer_fotogrammi_byte: stima,
+        },
+    }
+}
+
+/// Cattura il fotogramma `k` (posizionamento con `__joy_seek` + screenshot PNG). Con il profilo
+/// attivo registra le durate di `seek`, `screenshot`, `base64` e `verifica_png` (C.1.3).
+fn cattura(
+    s: &mut Sessione,
+    b: &mut Browser,
+    p: &Piano,
+    k: u64,
+    campioni: &mut Option<Campioni>,
+) -> Risultato<Vec<u8>> {
     let t = istante(k, p.fps, p.d_ms);
     let ctx = format!(", fotogramma {}/{}", k + 1, p.n);
     let espressione = format!("window.__joy_seek({t})");
+    let inizio = Instant::now();
     let r = comando(
         s,
         b,
@@ -445,6 +594,9 @@ fn cattura(s: &mut Sessione, b: &mut Browser, p: &Piano, k: u64) -> Risultato<Ve
         Some(x) if (x - t).abs() <= 1e-6 => {}
         _ => return Err(errore_interno("__joy_seek ha restituito un istante diverso da quello richiesto")),
     }
+    registra(campioni, |c| &mut c.seek, inizio.elapsed());
+
+    let inizio = Instant::now();
     let r = comando(
         s,
         b,
@@ -452,12 +604,21 @@ fn cattura(s: &mut Sessione, b: &mut Browser, p: &Piano, k: u64) -> Risultato<Ve
         "{\"format\":\"png\",\"fromSurface\":true,\"captureBeyondViewport\":false}",
         &ctx,
     )?;
+    registra(campioni, |c| &mut c.screenshot, inizio.elapsed());
     let dati = r
         .campo("data")
         .and_then(Valore::testo)
         .ok_or_else(|| Errore::globale("risposta del browser non valida: screenshot senza dati"))?;
+
+    let inizio = Instant::now();
     let png = base64::decodifica(dati)
         .map_err(|m| Errore::globale(format!("risposta del browser non valida: {m}")))?;
+    registra(campioni, |c| &mut c.base64, inizio.elapsed());
+    if let Some(c) = campioni.as_mut() {
+        c.byte_base64_totali += dati.len() as u64;
+    }
+
+    let inizio = Instant::now();
     let (w, h) = dimensioni_png(&png).map_err(|m| Errore::globale(format!("risposta del browser non valida: {m}")))?;
     if (w, h) != (p.larghezza, p.altezza) {
         return Err(Errore::globale(format!(
@@ -468,10 +629,19 @@ fn cattura(s: &mut Sessione, b: &mut Browser, p: &Piano, k: u64) -> Risultato<Ve
             "il browser ridimensiona la pagina: segnala il problema indicando browser e sistema operativo",
         ));
     }
+    registra(campioni, |c| &mut c.verifica_png, inizio.elapsed());
+    if let Some(c) = campioni.as_mut() {
+        let n = png.len() as u64;
+        c.byte_png_totali += n;
+        c.byte_png_max = c.byte_png_max.max(n);
+    }
     Ok(png)
 }
 
 /// Esporta `ingresso` in un MP4 `uscita` (B.9). `progresso` riceve avvisi e avanzamento.
+///
+/// Con `opzioni.profilo` il rapporto di diagnostica (C.1) è in [`EsitoVideo::profilo`]; le misure
+/// non cambiano il video né l'ordine dei fotogrammi.
 ///
 /// Su ogni errore browser, ffmpeg, file parziale e cartella temporanea vengono ripuliti e un
 /// eventuale `uscita` preesistente resta intatta.
@@ -484,13 +654,18 @@ pub fn render_file(
     opzioni: &OpzioniVideo,
     progresso: &mut dyn FnMut(Evento),
 ) -> Risultato<EsitoVideo> {
-    // Ramo provvisorio: le misure di `--profilo` arriveranno in un commit successivo.
-    if opzioni.profilo {
-        return Err(Errore::globale("la diagnostica --profilo non è ancora supportata"));
-    }
+    let inizio_totale = Instant::now();
+    let mut fasi = Fasi::default();
+    let mut campioni: Option<Campioni> = opzioni.profilo.then(Campioni::default);
+
+    let t = Instant::now();
     let sorgente = leggi_sorgente(ingresso, uscita, "-o video.mp4")?;
-    let (compilazione, sfondo) =
-        compila_con_sfondo(&sorgente, &Opzioni { leggibile: false, senza_player: true })?;
+    fasi.lettura = ms(t.elapsed());
+    let (compilazione, sfondo, misure_compilazione) =
+        compila_misurando(&sorgente, &Opzioni { leggibile: false, senza_player: true })?;
+    fasi.analisi = ms(misure_compilazione.analisi);
+    fasi.compilazione = ms(misure_compilazione.compilazione);
+    fasi.generazione_html = ms(misure_compilazione.generazione_html);
     for a in &compilazione.avvisi {
         progresso(Evento::Avviso(a.to_string()));
     }
@@ -503,11 +678,12 @@ pub fn render_file(
         )));
     }
 
+    let inizio_preparazione = Instant::now();
     let var = |k: &str| std::env::var(k).ok();
     let esiste = |p: &Path| p.is_file();
     let sistema = Sistema::corrente();
     let exe_ffmpeg = ffmpeg::cerca_ffmpeg(sistema, &var, &esiste)?;
-    ffmpeg::verifica(&exe_ffmpeg)?;
+    let versione_ffmpeg = ffmpeg::verifica(&exe_ffmpeg, opzioni.profilo)?;
     let exe_browser = browser::cerca_browser(sistema, &var, &esiste)?;
 
     // Ordine di dichiarazione = inverso dell'ordine di rimozione: prima ffmpeg e browser,
@@ -529,12 +705,25 @@ pub fn render_file(
     let mut nome_parziale = assoluta.file_name().map(|n| n.to_os_string()).unwrap_or_default();
     nome_parziale.push(".joypp-parziale");
     let mut parziale = Parziale { percorso: assoluta.with_file_name(nome_parziale), attivo: true };
+    fasi.preparazione = ms(inizio_preparazione.elapsed());
 
+    let t = Instant::now();
     let mut browser = Browser::avvia(&exe_browser, &profilo, piano.larghezza, piano.altezza)?;
     let (porta, percorso_ws) = browser.attendi_porta(&profilo, limiti::TIMEOUT_AVVIO_BROWSER)?;
+    fasi.avvio_browser = ms(t.elapsed());
+
+    let t = Instant::now();
     let mut sessione = Sessione::connetti(porta, &percorso_ws, limiti::TIMEOUT_COMANDO_CDP)
         .map_err(|e| mappa_cdp(e, &mut browser, "connessione"))?;
+    fasi.connessione_cdp = ms(t.elapsed());
+
+    // Solo con profilo: la versione del browser non rientra in `connessione_cdp` né in
+    // `caricamento_pagina`.
+    let versione_browser = if opzioni.profilo { leggi_versione_browser(&mut sessione) } else { None };
+
+    let t = Instant::now();
     prepara_pagina(&mut sessione, &mut browser, &url, &piano)?;
+    fasi.caricamento_pagina = ms(t.elapsed());
 
     let argomenti = ffmpeg::argomenti_ffmpeg(
         piano.larghezza,
@@ -544,31 +733,73 @@ pub fn render_file(
         sfondo_su_nero(sfondo),
         &parziale.percorso,
     );
+    let t = Instant::now();
     let mut codificatore = ffmpeg::Ffmpeg::avvia(&exe_ffmpeg, &argomenti)?;
+    fasi.avvio_ffmpeg = ms(t.elapsed());
 
     progresso(Evento::Fotogramma { fatti: 0, totale: piano.n });
+    let t = Instant::now();
     let mut ffmpeg_chiuso = false;
     for k in 0..piano.n {
-        let png = cattura(&mut sessione, &mut browser, &piano, k)?;
-        if !codificatore.invia(png) {
+        let png = cattura(&mut sessione, &mut browser, &piano, k, &mut campioni)?;
+        let inizio_coda = Instant::now();
+        let accettato = codificatore.invia(png);
+        registra(&mut campioni, |c| &mut c.attesa_coda, inizio_coda.elapsed());
+        if !accettato {
             ffmpeg_chiuso = true;
             break;
         }
         progresso(Evento::Fotogramma { fatti: k + 1, totale: piano.n });
     }
+    fasi.ciclo_fotogrammi = ms(t.elapsed());
 
     // Chiusura ordinata del browser prima della fine di ffmpeg.
+    let t = Instant::now();
     let _ = sessione.comando_globale("Browser.close", "{}", Duration::from_secs(2));
     browser.chiudi(limiti::TIMEOUT_CHIUSURA);
-    codificatore.finisci()?;
+    fasi.chiusura_browser = ms(t.elapsed());
+
+    let t = Instant::now();
+    let tempi_ffmpeg = codificatore.finisci()?;
+    fasi.finalizzazione_ffmpeg = ms(t.elapsed());
     if ffmpeg_chiuso {
         return Err(Errore::globale("ffmpeg ha chiuso la pipe prima della fine"));
     }
 
+    let t = Instant::now();
     fs::rename(&parziale.percorso, &assoluta).map_err(|e| errore_scrittura(&assoluta, e))?;
     parziale.attivo = false;
     let byte = fs::metadata(&assoluta).map(|m| m.len()).map_err(|e| errore_scrittura(&assoluta, e))?;
-    Ok(EsitoVideo { fotogrammi: piano.n, larghezza: w2, altezza: h2, fps: piano.fps, byte, profilo: None })
+    fasi.pubblicazione = ms(t.elapsed());
+    fasi.totale = ms(inizio_totale.elapsed());
+
+    let video = MisureVideo {
+        fotogrammi: piano.n,
+        larghezza: w2,
+        altezza: h2,
+        fps: piano.fps,
+        crf: opzioni.crf,
+        preset: "medium".to_string(),
+        byte,
+    };
+    let profilo = campioni.map(|c| {
+        let scena = MisureScena {
+            attori: misure_compilazione.attori,
+            gruppi: misure_compilazione.gruppi,
+            animazioni: misure_compilazione.animazioni,
+            byte_html: compilazione.html.len() as u64,
+            durata_ms: compilazione.durata * 1000.0,
+        };
+        costruisci_profilo(c, fasi, scena, video, tempi_ffmpeg, versione_browser, versione_ffmpeg)
+    });
+    Ok(EsitoVideo {
+        fotogrammi: piano.n,
+        larghezza: w2,
+        altezza: h2,
+        fps: piano.fps,
+        byte,
+        profilo,
+    })
 }
 
 #[cfg(test)]
@@ -690,6 +921,14 @@ mod test {
         let mut senza_ihdr = png;
         senza_ihdr[12] = b'X';
         assert!(dimensioni_png(&senza_ihdr).is_err());
+    }
+
+    #[test]
+    fn prestazioni_con_denominatore_non_positivo_sono_assenti() {
+        assert_eq!(quoziente(10.0, 1000.0), Some(10.0));
+        assert_eq!(quoziente(10.0, 0.0), None);
+        assert_eq!(quoziente(10.0, -5.0), None);
+        assert_eq!(quoziente(f64::INFINITY, 1000.0), None);
     }
 
     #[test]

@@ -13,17 +13,37 @@ Collega la pipeline al file system.
 - Opzioni: percorso di output (`-o`), output leggibile (`--pretty`, default: compatto),
   `--watch`, `--senza-player` (B.5).
 
-**Contratto diagnostica render (v0.2.2, C.1 — in corso).**
-- `render::OpzioniVideo { fps, crf, profilo: bool }`: `profilo` = misure attive (`--profilo` o
-  `--profilo-json`). `Default`: `profilo: false`.
-- `render::EsitoVideo { …, profilo: Option<profilo::Profilo> }`: `Some` se e solo se
-  `OpzioniVideo::profilo` era attivo. In questo passo è sempre `None`.
-- Ramo provvisorio: con `profilo: true`, `render_file` restituisce subito l'errore
-  «la diagnostica --profilo non è ancora supportata» (exit 1). Le misure arrivano in un commit
-  successivo.
-- Decisione per il passo d'implementazione: il JSON si scrive in modo atomico, in
-  `<file>.joypp-parziale` nella stessa cartella, poi con `rename`. Il parziale si rimuove in caso
-  di errore.
+**Diagnostica del render (`--profilo`, `--profilo-json`, SPECIFICA C.1).**
+- `OpzioniVideo { fps, crf, profilo: bool }`: `profilo` attiva le misure. `EsitoVideo.profilo`
+  è `Some(Profilo)` se e solo se `profilo` era attivo.
+- Senza profilo il render non crea alcun campione: le uniche letture di tempo sono
+  `Instant::now()` e non si allocano vettori. Comandi CDP, argomenti di ffmpeg e output sono
+  quelli della v0.2.1.
+- Fasi (`render_file`): lettura, analisi, compilazione, generazione HTML (da
+  `compila_misurando`, che restituisce anche i conteggi di `ScenaCompilata`), preparazione,
+  avvio del browser, connessione CDP, caricamento pagina, avvio di ffmpeg, ciclo dei fotogrammi,
+  chiusura del browser, finalizzazione di ffmpeg, pubblicazione e totale.
+- Per fotogramma (solo con profilo): `seek`, `screenshot` (misura combinata), `base64`,
+  `verifica_png` e `attesa_coda` (attorno a `Ffmpeg::invia`), in µs. `Statistica::da_microsecondi`
+  calcola media, p50, p95 e max con il rango nearest-rank.
+- `ffmpeg.rs`: `invia` usa `try_send`. Con `Full` conta un fotogramma con coda piena e poi fa
+  `send` bloccante. Il thread di scrittura somma la durata dei `write_all`. `finisci` restituisce
+  `TempiFfmpeg`. La prima riga di `ffmpeg -version` viene letta solo con profilo.
+- Con profilo, `Browser.getVersion` (campo `product`) è eseguito dopo la connessione e fuori da
+  `connessione_cdp`. Se fallisce il valore è `null`.
+- Memoria: il picco (`VmHWM`) è letto da `/proc/self/status` solo su Linux, altrove
+  «non disponibile». La stima dei buffer è `(CODA_FOTOGRAMMI + 2) × byte_png_max` ed è marcata
+  «(stima)».
+- Prestazioni: `fps_ciclo`, `fps_totale` e `rapporto_tempo_reale` sono `null` (o «non
+  disponibile») se il denominatore è 0 o il risultato non è finito.
+- `profilo.rs`: `Profilo::json()` (ordine fisso delle chiavi, schema `joypp-profilo/1`, tempi a
+  3 decimali, nessun percorso) e `Profilo::testo()` (rapporto di C.1.5 per stderr).
+  `verifica_percorso_profilo` impedisce che il JSON coincida con sorgente o video (stessa
+  normalizzazione di `stesso_file`). `scrivi_profilo_json` scrive in modo atomico:
+  `<file>.joypp-parziale`, poi `rename`; il parziale si rimuove in caso di errore.
+- `main.rs`: la verifica del percorso precede `render_file`. Dopo la riga `✔` il rapporto va su
+  stderr (con `--profilo`), poi il JSON viene scritto (con `--profilo-json`). Un errore di scrittura
+  termina con exit 1, ma il video resta pubblicato.
 
 **Contratto (v0.2 blocco 2C).**
 - `Opzioni { leggibile: bool, senza_player: bool }` (entrambi `false` di default). Si traduce
@@ -58,7 +78,7 @@ fotogramma → `ffmpeg` (H.264 `yuv420p`, BT.709) → `.mp4`. Solo libreria stan
 | Modulo | Compito |
 |--------|---------|
 | `mod.rs` | API (`OpzioniVideo`, `EsitoVideo`, `Evento`, `render_file`); funzioni pure: `fps_effettivo`, `numero_fotogrammi`, `istante`, `pianifica` (controlli e limiti di B.9.7), `url_file`, `dimensioni_png`, `sfondo_su_nero`; guardie `Drop` per cartella temporanea e file parziale; costanti in `render::limiti` |
-| `profilo.rs` | tipi della diagnostica `--profilo` / `--profilo-json` (schema `joypp-profilo/1`): `Profilo`, `Ambiente`, `MisureScena`, `MisureVideo`, `Fasi`, `PerFotogramma`, `Statistica`, `MisureFfmpeg`, `Dati`, `Prestazioni`, `Memoria`. Solo dati, senza formattazione |
+| `profilo.rs` | tipi della diagnostica `--profilo` / `--profilo-json` (schema `joypp-profilo/1`): `Profilo`, `Ambiente`, `MisureScena`, `MisureVideo`, `Fasi`, `PerFotogramma`, `Statistica`, `MisureFfmpeg`, `Dati`, `Prestazioni`, `Memoria`; statistiche (`Statistica::da_microsecondi`), formati `json()` e `testo()`, verifica del percorso e scrittura atomica del JSON |
 | `browser.rs` | ricerca (`JOYPP_BROWSER`, percorsi standard, `PATH`; funzione pura con ambiente iniettato), argomenti di avvio, attesa di `DevToolsActivePort`, stderr ripulito, `Drop` = kill + wait |
 | `cdp.rs` | sessione CDP: comandi con `id`, risposte, coda di eventi, timeout per operazione |
 | `websocket.rs` | handshake HTTP, frame mascherati, lunghezze 7/16/64 bit, frammentazione, ping/pong/close |

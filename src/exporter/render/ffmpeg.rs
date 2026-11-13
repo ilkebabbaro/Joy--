@@ -5,15 +5,16 @@ use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::mpsc::{SyncSender, sync_channel};
+use std::sync::mpsc::{SyncSender, TrySendError, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
 
 use super::browser::{Sistema, cerca_nel_path, da_variabile, ripulisci_riga};
 use crate::errore::Errore;
 
 /// Fotogrammi in coda tra il ciclo di cattura e il thread di scrittura (B.9.5, «Pipeline»).
-const CODA_FOTOGRAMMI: usize = 4;
+pub(crate) const CODA_FOTOGRAMMI: usize = 4;
 /// Quantità di stderr conservata (B.9.6).
 const MAX_STDERR: usize = 64 * 1024;
 
@@ -38,26 +39,45 @@ pub fn cerca_ffmpeg(
 
 /// Verifica che l'eseguibile funzioni (`-hide_banner -version` con codice 0).
 ///
+/// Con `cattura = true` (diagnostica `--profilo`) lo stdout viene letto e se ne restituisce la
+/// prima riga, ripulita dai caratteri di controllo; se la riga manca o è vuota vale `None`.
+/// Con `cattura = false` il comando è quello della v0.2.1, con stdout nullo.
+///
 /// # Errori
 /// `impossibile avviare ffmpeg («X»): …` o codice d'uscita diverso da 0.
-pub fn verifica(exe: &Path) -> Result<(), Errore> {
-    let stato = Command::new(exe)
-        .args(["-hide_banner", "-version"])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map_err(|e| {
-            Errore::globale(format!("impossibile avviare ffmpeg («{}»): {e}", exe.display()))
-        })?;
-    if stato.success() {
-        Ok(())
-    } else {
-        Err(Errore::globale(format!(
+pub fn verifica(exe: &Path, cattura: bool) -> Result<Option<String>, Errore> {
+    let errore_avvio = |e: std::io::Error| {
+        Errore::globale(format!("impossibile avviare ffmpeg («{}»): {e}", exe.display()))
+    };
+    let errore_esito = || {
+        Errore::globale(format!(
             "ffmpeg («{}») non funziona: `-version` è terminato con un errore",
             exe.display()
-        )))
+        ))
+    };
+    if !cattura {
+        let stato = Command::new(exe)
+            .args(["-hide_banner", "-version"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map_err(errore_avvio)?;
+        return if stato.success() { Ok(None) } else { Err(errore_esito()) };
     }
+    let uscita = Command::new(exe)
+        .args(["-hide_banner", "-version"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .map_err(errore_avvio)?;
+    if !uscita.status.success() {
+        return Err(errore_esito());
+    }
+    let testo = String::from_utf8_lossy(&uscita.stdout);
+    let prima = testo.lines().next().map(ripulisci_riga).filter(|r| !r.trim().is_empty());
+    Ok(prima)
 }
 
 /// Filtro video: converte con matrice BT.709 e, per dimensioni dispari, aggiunge un bordo a
@@ -116,14 +136,24 @@ pub fn argomenti_ffmpeg(
     a
 }
 
+/// Misure di `ffmpeg` raccolte durante il render (C.1.3, sezione «ffmpeg»).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TempiFfmpeg {
+    /// Somma delle durate dei `write_all` nel thread di scrittura.
+    pub scrittura_pipe: Duration,
+    /// Invii che hanno trovato la coda piena (`try_send` → `Full`, poi `send` bloccante).
+    pub coda_piena: u64,
+}
+
 /// Processo `ffmpeg` in esecuzione con il suo thread di scrittura. Il `Drop` lo termina.
 pub struct Ffmpeg {
     figlio: Child,
     coda: Option<SyncSender<Vec<u8>>>,
-    scrittore: Option<JoinHandle<Option<String>>>,
+    scrittore: Option<JoinHandle<(Duration, Option<String>)>>,
     lettore: Option<JoinHandle<()>>,
     stderr: Arc<Mutex<Vec<u8>>>,
     concluso: bool,
+    coda_piena: u64,
 }
 
 impl Ffmpeg {
@@ -163,12 +193,16 @@ impl Ffmpeg {
         let (coda, ricevitore) = sync_channel::<Vec<u8>>(CODA_FOTOGRAMMI);
         let scrittore = figlio.stdin.take().map(|mut stdin| {
             std::thread::spawn(move || {
+                let mut scrittura = Duration::ZERO;
                 for png in ricevitore {
-                    if let Err(e) = stdin.write_all(&png) {
-                        return Some(e.to_string());
+                    let t = Instant::now();
+                    let esito = stdin.write_all(&png);
+                    scrittura += t.elapsed();
+                    if let Err(e) = esito {
+                        return (scrittura, Some(e.to_string()));
                     }
                 }
-                None
+                (scrittura, None)
             })
         });
         Ok(Self {
@@ -178,22 +212,37 @@ impl Ffmpeg {
             lettore,
             stderr,
             concluso: false,
+            coda_piena: 0,
         })
     }
 
-    /// Accoda un PNG (l'ordine è quello delle chiamate). `false` se ffmpeg ha chiuso la pipe:
-    /// chiamare allora [`Ffmpeg::finisci`] per ottenere la causa.
+    /// Accoda un PNG (l'ordine è quello delle chiamate). Se la coda è piena conta l'evento e
+    /// attende lo spazio (`send` bloccante). `false` se ffmpeg ha chiuso la pipe: chiamare
+    /// allora [`Ffmpeg::finisci`] per ottenere la causa.
     pub fn invia(&mut self, png: Vec<u8>) -> bool {
-        self.coda.as_ref().is_some_and(|c| c.send(png).is_ok())
+        let Some(coda) = self.coda.as_ref() else {
+            return false;
+        };
+        match coda.try_send(png) {
+            Ok(()) => true,
+            Err(TrySendError::Full(png)) => {
+                self.coda_piena += 1;
+                coda.send(png).is_ok()
+            }
+            Err(TrySendError::Disconnected(_)) => false,
+        }
     }
 
     /// Chiude lo stdin, attende ffmpeg (senza timeout) e ne valuta l'esito.
     ///
     /// # Errori
     /// Codice d'uscita diverso da 0, con le ultime 20 righe di stderr; oppure errore di scrittura.
-    pub fn finisci(mut self) -> Result<(), Errore> {
+    pub fn finisci(mut self) -> Result<TempiFfmpeg, Errore> {
         self.coda = None;
-        let errore_scrittura = self.scrittore.take().and_then(|t| t.join().ok().flatten());
+        let (scrittura_pipe, errore_scrittura) = match self.scrittore.take().map(|t| t.join()) {
+            Some(Ok((durata, errore))) => (durata, errore),
+            _ => (Duration::ZERO, None),
+        };
         let stato = self.figlio.wait();
         self.concluso = true;
         if let Some(l) = self.lettore.take() {
@@ -205,7 +254,7 @@ impl Ffmpeg {
         };
         let stato = stato.map_err(|e| Errore::globale(format!("attesa di ffmpeg fallita: {e}")))?;
         if stato.success() && errore_scrittura.is_none() {
-            return Ok(());
+            return Ok(TempiFfmpeg { scrittura_pipe, coda_piena: self.coda_piena });
         }
         let codice = match stato.code() {
             Some(c) => format!("codice {c}"),

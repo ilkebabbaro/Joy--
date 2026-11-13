@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 use joypp::exporter::cli::{
     ArgomentiCompila, ArgomentiRender, Comando, interpreta, uscita_video_predefinita,
 };
+use joypp::exporter::render::profilo::{scrivi_profilo_json, verifica_percorso_profilo};
 use joypp::exporter::render::{Evento, render_file};
 use joypp::exporter::{Esito, compila_file, osserva, output_predefinito};
 
@@ -135,6 +136,14 @@ fn esegui_render(a: ArgomentiRender) -> ExitCode {
             uscita.display()
         );
     }
+    let verifica = a
+        .profilo_json
+        .as_ref()
+        .map_or(Ok(()), |json| verifica_percorso_profilo(&a.ingresso, &uscita, json));
+    if let Err(e) = verifica {
+        eprintln!("{e}");
+        return ExitCode::FAILURE;
+    }
     let mut avanzamento = Avanzamento::nuovo();
     let esito = render_file(&a.ingresso, &uscita, &a.video, &mut |e| avanzamento.evento(e));
     avanzamento.chiudi_riga();
@@ -151,6 +160,22 @@ fn esegui_render(a: ArgomentiRender) -> ExitCode {
                 e.durata_video(),
                 e.byte
             );
+            // Il video è già pubblicato: un errore sul profilo non lo rimuove.
+            if let Some(profilo) = &e.profilo {
+                if a.profilo_testo {
+                    eprintln!("{}", profilo.testo());
+                }
+                // Secondo controllo: ora il video esiste, quindi il confronto canonico funziona.
+                // In caso di conflitto nulla viene scritto e il video resta com'è.
+                let scrittura = a.profilo_json.as_ref().map_or(Ok(()), |json| {
+                    verifica_percorso_profilo(&a.ingresso, &uscita, json)?;
+                    scrivi_profilo_json(json, &profilo.json())
+                });
+                if let Err(errore) = scrittura {
+                    eprintln!("{errore}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(e) => {

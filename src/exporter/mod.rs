@@ -2,8 +2,9 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
+use crate::ast::{Colore, Forma};
 use crate::codegen::OpzioniHtml;
 use crate::errore::{Avviso, Errore, Risultato};
 use crate::security::limiti;
@@ -60,23 +61,65 @@ pub fn compila_con_avvisi(sorgente: &str, opzioni: &Opzioni) -> Risultato<Compil
     compila_con_sfondo(sorgente, opzioni).map(|(c, _)| c)
 }
 
+/// Tempi e conteggi della compilazione, misurati da [`compila_misurando`] (C.1.3).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct MisureCompilazione {
+    /// Durata di `parser::analizza`.
+    pub analisi: Duration,
+    /// Durata di `compiler::compila`.
+    pub compilazione: Duration,
+    /// Durata di `codegen::genera_html`.
+    pub generazione_html: Duration,
+    /// Numero di attori (esclusi i gruppi).
+    pub attori: usize,
+    /// Numero di gruppi.
+    pub gruppi: usize,
+    /// Somma delle animazioni di tutti gli attori e gruppi.
+    pub animazioni: usize,
+}
+
 /// Come [`compila_con_avvisi`], ma restituisce anche lo sfondo del palco (serve a `render` per
 /// il bordo delle dimensioni dispari, B.9.6). Resta il punto unico della pipeline.
 pub(crate) fn compila_con_sfondo(
     sorgente: &str,
     opzioni: &Opzioni,
-) -> Risultato<(Compilazione, crate::ast::Colore)> {
+) -> Risultato<(Compilazione, Colore)> {
+    compila_misurando(sorgente, opzioni).map(|(c, sfondo, _)| (c, sfondo))
+}
+
+/// Pipeline di [`compila_con_sfondo`] con misura separata di analisi, compilazione e
+/// generazione HTML, più i conteggi di `ScenaCompilata` (letta, non modificata). Usa solo
+/// `Instant::now()`: non alloca e vale sempre.
+pub(crate) fn compila_misurando(
+    sorgente: &str,
+    opzioni: &Opzioni,
+) -> Risultato<(Compilazione, Colore, MisureCompilazione)> {
     if sorgente.len() as u64 > limiti::MAX_SORGENTE_BYTE {
         return Err(Errore::globale(format!(
             "il sorgente è troppo grande (massimo {} byte)",
             limiti::MAX_SORGENTE_BYTE
         )));
     }
+    let t = Instant::now();
     let programma = parser::analizza(sorgente)?;
+    let analisi = t.elapsed();
+    let t = Instant::now();
     let scena = compiler::compila(&programma)?;
+    let compilazione = t.elapsed();
     let opzioni_html =
         OpzioniHtml { leggibile: opzioni.leggibile, player: !opzioni.senza_player };
+    let t = Instant::now();
     let html = codegen::genera_html(&scena, &opzioni_html);
+    let generazione_html = t.elapsed();
+    let gruppi = scena.attori.iter().filter(|a| matches!(a.forma, Forma::Gruppo { .. })).count();
+    let misure = MisureCompilazione {
+        analisi,
+        compilazione,
+        generazione_html,
+        attori: scena.attori.len() - gruppi,
+        gruppi,
+        animazioni: scena.attori.iter().map(|a| a.animazioni.len()).sum(),
+    };
     let sfondo = scena.sfondo;
     Ok((
         Compilazione {
@@ -88,6 +131,7 @@ pub(crate) fn compila_con_sfondo(
             avvisi: scena.avvisi,
         },
         sfondo,
+        misure,
     ))
 }
 
@@ -152,7 +196,9 @@ pub(crate) fn leggi_sorgente(ingresso: &Path, uscita: &Path, esempio: &str) -> R
     })
 }
 
-fn stesso_file(a: &Path, b: &Path) -> bool {
+/// Confronto tra due percorsi con la normalizzazione dell'output: canonici se esistono entrambi,
+/// altrimenti confronto letterale.
+pub(crate) fn stesso_file(a: &Path, b: &Path) -> bool {
     match (fs::canonicalize(a), fs::canonicalize(b)) {
         (Ok(x), Ok(y)) => x == y,
         _ => a == b,
