@@ -24,7 +24,9 @@ pub struct Palco {
     pub altezza: f64,
     /// Colore di sfondo.
     pub sfondo: Colore,
-    /// Fotogrammi al secondo dichiarati (informativo: il browser segue il refresh del display).
+    /// Fotogrammi al secondo dichiarati con `a N fotogrammi` (1-240). Nell'HTML è informativo
+    /// (il browser segue il refresh del display); per `joypp render` è il predefinito di
+    /// `--fps`, che resta 60 se il valore manca (SPECIFICA B.9.1).
     pub fps: Option<u32>,
     /// Riga del sorgente.
     pub riga: usize,
@@ -56,22 +58,31 @@ impl Colore {
     pub const BIANCO: Colore = Colore::rgb(255, 255, 255);
 }
 
-/// Un elemento visivo della scena.
+/// Un elemento visivo della scena, oppure un gruppo di attori (SPECIFICA B.3).
+///
+/// Gli attori e i gruppi condividono lo stesso spazio dei nomi: un nome identifica un solo
+/// elemento, che sia un attore semplice o un gruppo.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Attore {
     /// Nome univoco scritto tra virgolette (`chiamato "sole"`).
     pub nome: String,
-    /// Forma geometrica o testo.
+    /// Forma geometrica, testo o gruppo.
     pub forma: Forma,
-    /// Proprietà visive comuni.
+    /// Proprietà visive comuni. Per un [`Forma::Gruppo`] il parser imposta solo `opacita`,
+    /// `livello`, `scala` e `rotazione` (B.3.2); gli altri campi restano ai valori di
+    /// [`Stile::default`] e il compilatore li ignora.
     pub stile: Stile,
     /// Posizione del **centro** dell'attore.
+    ///
+    /// Per un [`Forma::Gruppo`] non ha significato (il centro è il pivot calcolato dai membri,
+    /// B.3.3): il parser vi mette il valore predefinito `Posizione::Palco(Ancora::Centro)` e
+    /// rifiuta una posizione scritta esplicitamente; il compilatore la ignora.
     pub posizione: Posizione,
     /// Riga del sorgente.
     pub riga: usize,
 }
 
-/// Tipi di attore supportati nella v0.1.
+/// Tipi di attore supportati (v0.1 più il gruppo della v0.2).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Forma {
     /// `un cerchio` con `raggio [N]`.
@@ -98,6 +109,18 @@ pub enum Forma {
         font: Option<String>,
         /// `true` per `peso grassetto`.
         grassetto: bool,
+    },
+    /// `un gruppo` con i suoi membri (SPECIFICA B.3.2):
+    /// `Crea un gruppo chiamato "g" con "a", "b" e "c" [PROPRIETÀ].`
+    ///
+    /// Un gruppo non ha forma visibile né posizione propria: il suo centro (pivot) è
+    /// calcolato dal compilatore a partire dai membri (B.3.3).
+    Gruppo {
+        /// Nomi dei membri (attori o altri gruppi), nell'ordine in cui sono scritti, già
+        /// ripuliti dagli spazi iniziali e finali come gli altri nomi. Il parser garantisce
+        /// almeno un elemento; esistenza, ordine di creazione, duplicati, appartenenza unica
+        /// e profondità sono controllati dal compilatore (B.3.8).
+        membri: Vec<String>,
     },
 }
 
@@ -179,7 +202,7 @@ pub enum Ancora {
     BassoDestra,
 }
 
-/// Direzioni cardinali (posizioni relative e verbo `scivola verso`).
+/// Direzioni cardinali (posizioni relative e verbi `scivola verso`, `entra da`, `esce verso`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direzione {
     /// Verso l'alto (y decrescente).
@@ -255,8 +278,10 @@ pub struct Azione {
     pub riga: usize,
 }
 
-/// Verbi supportati nella v0.1.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Verbi supportati (v0.1 più quelli della v0.2, SPECIFICA B.2 e B.4).
+///
+/// Non è `Copy` perché [`Verbo::Orbita`] contiene il nome dell'attore centro.
+#[derive(Debug, Clone, PartialEq)]
 pub enum Verbo {
     /// `appare sfumando`: l'opacità sale fino a quella dichiarata dall'attore.
     AppareSfumando,
@@ -289,6 +314,30 @@ pub enum Verbo {
         /// Battiti al minuto.
         bpm: f64,
     },
+    /// `entra da [sinistra|destra|alto|basso]` (anche `dal`, `dall'`, `dalla`, SPECIFICA B.2.3):
+    /// porta l'attore dal fuori campo del lato indicato alla sua posizione dichiarata.
+    /// Il campo è il **lato di provenienza** (`entra da sinistra` → [`Direzione::Sinistra`]).
+    EntraDa(Direzione),
+    /// `esce verso [sinistra|destra|alto|basso]` (SPECIFICA B.2.2): porta l'attore al fuori
+    /// campo del lato indicato (`esce verso l'alto` → [`Direzione::Alto`]).
+    EsceVerso(Direzione),
+    /// `orbita attorno a "ALTRO" con raggio R per G giri [in senso orario|antiorario]`
+    /// (SPECIFICA B.4.1).
+    Orbita {
+        /// Nome dell'attore o gruppo attorno a cui orbitare (`ALTRO`), ripulito dagli spazi.
+        centro: String,
+        /// Raggio dell'orbita in pixel, così come scritto (il compilatore verifica
+        /// `0 < raggio ≤ MAX_COORDINATA`).
+        raggio: f64,
+        /// Numero di giri, anche frazionario (`0.25` = un quarto di giro). Il compilatore
+        /// rifiuta i valori ≤ 0: il verso si sceglie con `orario`.
+        giri: f64,
+        /// `true` per `in senso orario`; `false` per `in senso antiorario` e quando il verso
+        /// è omesso (predefinito: antiorario sullo schermo, B.7 punto 3).
+        orario: bool,
+    },
+    /// `cambia colore in COLORE` (SPECIFICA B.4.2): stesso lessico dei colori di §3.
+    CambiaColore(Colore),
 }
 
 /// Curve di movimento (SPECIFICA §6).

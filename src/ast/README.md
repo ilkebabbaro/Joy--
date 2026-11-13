@@ -6,8 +6,13 @@ Strutture dati **pure** (nessuna logica di I/O) prodotte dal parser e consumate 
 
 - `Programma` — radice: un `Palco`, la lista ordinata di `Attore` e la `Timeline`.
 - `Palco` — dimensioni in px, colore di sfondo, FPS opzionale.
-- `Attore` — nome univoco, `Forma` (`Cerchio`, `Rettangolo`, `Testo`), `Stile` comune
-  e `Posizione` (assoluta, ancorata al palco o relativa a un altro attore).
+- `Attore` — nome univoco, `Forma` (`Cerchio`, `Rettangolo`, `Testo` e, dalla v0.2,
+  `Gruppo { membri: Vec<String> }`, SPECIFICA B.3), `Stile` comune e `Posizione` (assoluta,
+  ancorata al palco o relativa a un altro attore; ignorata per i gruppi).
+- `Verbo` — verbi della v0.1 più, dalla v0.2, `EntraDa(Direzione)`, `EsceVerso(Direzione)`,
+  `Orbita { centro, raggio, giri, orario }` e `CambiaColore(Colore)` (SPECIFICA B.2, B.4). Non è
+  `Copy`. Il contratto completo con esempi è in `src/compiler/README.md`
+  («Contratto v0.2 blocco 2B»).
 - `Stile` — proprietà comuni: `colore`, `opacita` (predefinita 1.0), `livello` (`z-index`),
   `bordo` facoltativo e lo stato iniziale di SPECIFICA B.1: `scala: f64` (`s0`, predefinita
   1.0) e `rotazione: f64` (`r0` in gradi, predefinita 0.0, non normalizzata). I limiti

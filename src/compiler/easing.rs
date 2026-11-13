@@ -18,6 +18,78 @@ pub enum Curva {
     CubicBezier([f64; 4]),
     /// `linear(p0, p1, ..., pN)`: punti equidistanti nel tempo.
     Campionata(Vec<f64>),
+    /// Salto istantaneo (SPECIFICA B.0.3), emesso esattamente come `steps(1,end)`.
+    ///
+    /// Non corrisponde a nessun [`Easing`] dell'utente: il compilatore lo assegna al
+    /// keyframe in `t0` che precede di `δ` il keyframe con il valore di partenza di
+    /// `entra da` (non iniziale) o di `orbita` (distanza diversa dal raggio). Con
+    /// `steps(1,end)` il valore resta quello di `t0` fino a `t0 + δ` e poi cambia di colpo.
+    Gradino,
+}
+
+/// Tolleranza della risoluzione numerica delle `cubic-bezier` (SPECIFICA B.0.2 chiede 1e-6).
+const TOLLERANZA_BEZIER: f64 = 1e-7;
+
+impl Curva {
+    /// Valuta la curva nel progresso `p` (0.0-1.0, valori fuori intervallo sono limitati),
+    /// come farebbe il browser: restituisce la frazione del cambiamento già compiuta.
+    ///
+    /// * `cubic-bezier`: si risolve `x(s) = p` per bisezione (tolleranza 1e-7) e si
+    ///   restituisce `y(s)`.
+    /// * Curve campionate: interpolazione lineare tra campioni equidistanti.
+    /// * [`Curva::Gradino`] (`steps(1,end)`): 0 per `p < 1`, 1 per `p = 1`.
+    pub fn valuta(&self, p: f64) -> f64 {
+        let p = if p.is_nan() { 0.0 } else { p.clamp(0.0, 1.0) };
+        match self {
+            Curva::Lineare => p,
+            Curva::CubicBezier([x1, y1, x2, y2]) => {
+                let (mut basso, mut alto, mut s) = (0.0, 1.0, p);
+                for _ in 0..64 {
+                    let x = bezier(*x1, *x2, s);
+                    if (x - p).abs() < TOLLERANZA_BEZIER {
+                        break;
+                    }
+                    if x < p {
+                        basso = s;
+                    } else {
+                        alto = s;
+                    }
+                    s = (basso + alto) / 2.0;
+                }
+                bezier(*y1, *y2, s)
+            }
+            Curva::Campionata(punti) => match punti.len() {
+                0 => p,
+                1 => punti[0],
+                n => {
+                    let ultimo = n - 1;
+                    let pos = p * ultimo as f64;
+                    let i = (pos.floor() as usize).min(ultimo - 1);
+                    let frazione = pos - i as f64;
+                    punti[i] + (punti[i + 1] - punti[i]) * frazione
+                }
+            },
+            Curva::Gradino => {
+                if p >= 1.0 {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+        }
+    }
+
+    /// `true` se la curva supera il bersaglio (oggi solo `elastico`): per l'estensione dei
+    /// canali (SPECIFICA B.0.4) il tratto va allargato con il fattore 1.36.
+    pub fn supera_bersaglio(&self) -> bool {
+        matches!(self, Curva::Campionata(punti) if punti.iter().any(|v| *v > 1.0))
+    }
+}
+
+/// Coordinata di una `cubic-bezier` con estremi 0 e 1 e punti di controllo `p1`, `p2`.
+fn bezier(p1: f64, p2: f64, s: f64) -> f64 {
+    let u = 1.0 - s;
+    3.0 * u * u * s * p1 + 3.0 * u * s * s * p2 + s * s * s
 }
 
 /// Converte un [`Easing`] dell'AST nella relativa [`Curva`].
@@ -92,5 +164,22 @@ mod test {
         };
         assert_eq!(punti.len(), CAMPIONI + 1);
         assert!(punti.iter().any(|p| *p > 1.0));
+    }
+
+    #[test]
+    fn valutazione_delle_curve() {
+        for e in [Easing::Lineare, Easing::Morbido, Easing::Scatto, Easing::Elastico, Easing::Rimbalzo] {
+            let c = curva(e);
+            assert!(c.valuta(0.0).abs() < 1e-6, "{e:?}");
+            assert!((c.valuta(1.0) - 1.0).abs() < 1e-6, "{e:?}");
+        }
+        // `ease-in-out` è simmetrica: a metà vale 0.5.
+        assert!((curva(Easing::Morbido).valuta(0.5) - 0.5).abs() < 1e-6);
+        assert_eq!(Curva::Campionata(vec![0.0, 1.0, 0.0]).valuta(0.25), 0.5);
+        assert_eq!(Curva::Gradino.valuta(0.999), 0.0);
+        assert_eq!(Curva::Gradino.valuta(1.0), 1.0);
+        assert!(curva(Easing::Elastico).supera_bersaglio());
+        assert!(!curva(Easing::Rimbalzo).supera_bersaglio());
+        assert!(!curva(Easing::Scatto).supera_bersaglio());
     }
 }

@@ -8,14 +8,22 @@
 //! di SPECIFICA B.6 nel campo [`ScenaCompilata::avvisi`].
 
 pub mod easing;
+mod gruppi;
+mod ingombro;
+mod keyframe;
+mod orbita;
+mod posizioni;
+mod traslazione;
 
 use std::collections::HashMap;
 
-use crate::ast::{Ancora, Attore, Colore, Easing, Forma, Posizione, Programma, Stile, Tempo, Verbo};
+use crate::ast::{Attore, Azione, Colore, Direzione, Easing, Forma, Programma, Stile, Tempo, Verbo};
 use crate::errore::{Avviso, Errore, Risultato};
 use crate::parser::suggerisci;
 use crate::security::{limiti, valida_nome_font};
 use easing::{Curva, curva};
+use gruppi::Albero;
+use keyframe::{Accumulatore, Vett};
 
 /// Tolleranza per i confronti tra istanti (in secondi).
 const EPSILON: f64 = 1e-9;
@@ -32,31 +40,83 @@ pub struct ScenaCompilata {
     pub altezza: f64,
     /// Colore di sfondo.
     pub sfondo: Colore,
-    /// FPS dichiarati (informativi).
+    /// FPS dichiarati con `a N fotogrammi` (informativi nell'HTML; predefinito di `--fps`
+    /// per `joypp render`, SPECIFICA B.9.1).
     pub fps: Option<u32>,
     /// Durata totale della timeline in secondi (0 se non ci sono blocchi).
     pub durata: f64,
-    /// Attori nell'ordine di creazione.
+    /// Attori e gruppi in **pre-ordine** (visita in profondità) dell'albero dei gruppi
+    /// (SPECIFICA B.3.5, B.3.7). Invarianti garantiti dal compilatore:
+    ///
+    /// 1. **Genitore prima dei figli:** se `attori[i].genitore == Some(g)`, allora `g < i` e
+    ///    `attori[g].forma` è [`Forma::Gruppo`].
+    /// 2. **Sottoalberi contigui:** i discendenti di un gruppo `g` occupano un intervallo
+    ///    contiguo subito dopo `g`; il sottoalbero finisce al primo indice `j > g` il cui
+    ///    genitore non è `g` né un discendente di `g`.
+    /// 3. **Ordine dei fratelli = ordine nel DOM:** i figli di uno stesso genitore (il palco,
+    ///    `None`, oppure un gruppo) compaiono nell'ordine di disegno di B.3.5: per riga di
+    ///    creazione, dove un gruppo prende il posto del suo discendente creato per primo
+    ///    (riga minima). Il generatore deve emettere gli elementi **esattamente in
+    ///    quest'ordine**, annidando ogni figlio nel wrapper del suo genitore, senza riordinare.
+    /// 4. **Compatibilità v0.1:** senza gruppi l'ordine coincide con quello di creazione e
+    ///    gli `id` sono identici a quelli della v0.1.
+    ///
+    /// Per emettere l'albero basta una pila dei gruppi aperti: prima di emettere `attori[i]`
+    /// si chiudono i wrapper finché la cima della pila non è `attori[i].genitore` (o la pila
+    /// è vuota se il genitore è `None`). In alternativa si può ricorrere con
+    /// [`ScenaCompilata::figli`].
     pub attori: Vec<AttoreCompilato>,
     /// Avvisi non bloccanti (SPECIFICA B.6), ordinati per riga crescente e senza
     /// duplicati (stessa riga e stesso messaggio compaiono una volta sola).
     pub avvisi: Vec<Avviso>,
 }
 
-/// Attore con posizione assoluta risolta e animazioni pre-calcolate.
+impl ScenaCompilata {
+    /// Indici (in [`ScenaCompilata::attori`]) dei figli diretti di `genitore`, nell'ordine
+    /// in cui vanno emessi nel DOM. `None` indica il palco (attori e gruppi di primo livello).
+    ///
+    /// Ogni chiamata scorre tutti gli attori: per emettere l'intero albero in tempo lineare
+    /// conviene la pila descritta in [`ScenaCompilata::attori`].
+    pub fn figli(&self, genitore: Option<usize>) -> impl Iterator<Item = usize> + '_ {
+        self.attori
+            .iter()
+            .enumerate()
+            .filter(move |(_, a)| a.genitore == genitore)
+            .map(|(i, _)| i)
+    }
+}
+
+/// Attore (o gruppo) con posizione risolta e animazioni pre-calcolate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttoreCompilato {
-    /// Identificatore HTML/CSS generato (`a0`, `a1`, ...): mai derivato dall'input utente.
+    /// Identificatore HTML/CSS generato (`aK`, dove `K` è l'indice in
+    /// [`ScenaCompilata::attori`]): mai derivato dall'input utente.
     pub id: String,
     /// Nome originale (da sanificare prima di qualsiasi output).
     pub nome: String,
-    /// Forma validata.
+    /// Forma validata. Per un [`Forma::Gruppo`] il generatore emette solo il wrapper
+    /// `<div class="attore gruppo" id="aK" data-nome="…">` con i figli dentro e **nessuna**
+    /// `.forma` (B.3.5); l'albero va ricostruito da [`AttoreCompilato::genitore`], non dal
+    /// campo `membri` (che conserva i nomi solo a scopo informativo).
     pub forma: Forma,
-    /// Stile validato.
+    /// Stile validato. Per un gruppo contano solo `livello` (lo `z-index` del wrapper, che
+    /// ordina il gruppo tra i suoi fratelli) e i valori iniziali qui sotto.
     pub stile: Stile,
-    /// Ascissa del centro, in pixel.
+    /// Indice in [`ScenaCompilata::attori`] del gruppo genitore diretto, oppure `None` per gli
+    /// attori e i gruppi di primo livello (figli del palco). Vedi gli invarianti di
+    /// [`ScenaCompilata::attori`].
+    pub genitore: Option<usize>,
+    /// Ascissa del centro in pixel, **relativa al genitore** (B.3.5): diventa `left` del
+    /// wrapper `#aK`.
+    ///
+    /// * Primo livello (`genitore == None`): relativa al palco, come nella v0.1.
+    /// * Membro di un gruppo: `posizione_dichiarata − P_genitore`, dove `P_genitore` è il
+    ///   pivot del gruppo genitore (B.3.3).
+    /// * Gruppo: il suo pivot `P` meno il pivot del genitore (o meno `(0, 0)` se è di primo
+    ///   livello).
     pub x: f64,
-    /// Ordinata del centro, in pixel.
+    /// Ordinata del centro in pixel, relativa al genitore con le stesse regole di
+    /// [`AttoreCompilato::x`]: diventa `top` del wrapper `#aK`.
     pub y: f64,
     /// Opacità a inizio scena.
     pub opacita_iniziale: f64,
@@ -71,6 +131,9 @@ pub struct AttoreCompilato {
 }
 
 /// Canali di animazione indipendenti (proprietà CSS individuali componibili).
+///
+/// L'ordine delle varianti (`Ord`) è l'ordine in cui le [`Animazione`] di un attore
+/// compaiono in [`AttoreCompilato::animazioni`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Canale {
     /// `opacity`
@@ -81,26 +144,60 @@ pub enum Canale {
     Rotazione,
     /// `scale`
     Scala,
+    /// `background-color` (cerchi, rettangoli) o `color` (testi), sulla `.forma`
+    /// (SPECIFICA B.4.2). Mai presente su un gruppo.
+    Colore,
+}
+
+/// Elemento del DOM su cui il generatore applica l'animazione di un canale.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bersaglio {
+    /// Il wrapper `#aK` (classe `.attore`): proprietà composite (`opacity`, `translate`,
+    /// `rotate`, `scale`), accelerate dalla GPU. Vanno in `animation` e in `will-change`
+    /// della regola `#aK{…}`.
+    Wrapper,
+    /// L'elemento visibile `#aK>.forma` (canale `colore`): l'animazione va in una regola
+    /// `#aK>.forma{animation:…}` con la stessa durata e `linear both`, e **non** va in
+    /// `will-change` (B.4.2: provoca solo un ridisegno, non è una proprietà composita).
+    Forma,
 }
 
 impl Canale {
-    /// Suffisso usato nei nomi `@keyframes` generati.
+    /// Suffisso usato nei nomi `@keyframes` generati (`@keyframes aK-<suffisso>`).
     pub fn suffisso(self) -> &'static str {
         match self {
             Canale::Opacita => "opacita",
             Canale::Traslazione => "traslazione",
             Canale::Rotazione => "rotazione",
             Canale::Scala => "scala",
+            Canale::Colore => "colore",
         }
     }
 
-    /// Proprietà CSS animata dal canale.
-    pub fn proprieta_css(self) -> &'static str {
+    /// Elemento del DOM che riceve l'animazione del canale.
+    pub fn bersaglio(self) -> Bersaglio {
+        match self {
+            Canale::Colore => Bersaglio::Forma,
+            _ => Bersaglio::Wrapper,
+        }
+    }
+
+    /// Proprietà CSS animata dal canale per un attore di forma `forma`.
+    ///
+    /// Solo [`Canale::Colore`] dipende dalla forma: `color` per [`Forma::Testo`],
+    /// `background-color` per cerchi e rettangoli. Il compilatore non produce mai il canale
+    /// `colore` per un [`Forma::Gruppo`] (B.3.8); in quel caso il valore restituito
+    /// (`background-color`) non va usato.
+    pub fn proprieta_css(self, forma: &Forma) -> &'static str {
         match self {
             Canale::Opacita => "opacity",
             Canale::Traslazione => "translate",
             Canale::Rotazione => "rotate",
             Canale::Scala => "scale",
+            Canale::Colore => match forma {
+                Forma::Testo { .. } => "color",
+                _ => "background-color",
+            },
         }
     }
 
@@ -111,17 +208,49 @@ impl Canale {
             Canale::Traslazione => "la posizione",
             Canale::Rotazione => "la rotazione",
             Canale::Scala => "la scala",
+            Canale::Colore => "il colore",
         }
     }
 
-    fn valore(self, v: [f64; 2]) -> Valore {
+    /// Tutti i canali, nell'ordine di `Ord`.
+    const TUTTI: [Canale; 5] = [Canale::Opacita, Canale::Traslazione, Canale::Rotazione, Canale::Scala, Canale::Colore];
+
+    /// Posizione del canale in [`Canale::TUTTI`] (indice degli array per canale).
+    fn indice(self) -> usize {
+        match self {
+            Canale::Opacita => 0,
+            Canale::Traslazione => 1,
+            Canale::Rotazione => 2,
+            Canale::Scala => 3,
+            Canale::Colore => 4,
+        }
+    }
+
+    /// Converte il valore interno nel [`Valore`] pubblico.
+    fn valore(self, v: Vett) -> Valore {
         match self {
             Canale::Opacita => Valore::Opacita(v[0]),
             Canale::Traslazione => Valore::Traslazione(v[0], v[1]),
             Canale::Rotazione => Valore::Rotazione(v[0]),
             Canale::Scala => Valore::Scala(v[0]),
+            Canale::Colore => {
+                // I valori vengono sempre da un `Colore` (nessuna interpolazione in Rust):
+                // la conversione è esatta; `clamp` la rende comunque sicura.
+                let componente = |c: f64| c.round().clamp(0.0, 255.0) as u8;
+                Valore::Colore(Colore {
+                    r: componente(v[0]),
+                    g: componente(v[1]),
+                    b: componente(v[2]),
+                    a: v[3].clamp(0.0, 1.0),
+                })
+            }
         }
     }
+}
+
+/// Valore interno del canale `colore` per un [`Colore`].
+fn vettore_colore(c: Colore) -> Vett {
+    [f64::from(c.r), f64::from(c.g), f64::from(c.b), c.a]
 }
 
 /// Animazione di un singolo canale lungo tutta la durata della scena.
@@ -140,7 +269,9 @@ pub struct Keyframe {
     pub offset: f64,
     /// Valore del canale in questo istante.
     pub valore: Valore,
-    /// Curva da applicare fino al keyframe successivo (`None` = lineare).
+    /// Curva da applicare fino al keyframe successivo (`None` = lineare), emessa come
+    /// `animation-timing-function` del keyframe. [`Curva::Gradino`] (`steps(1,end)`) segnala
+    /// un salto istantaneo (B.0.3).
     pub curva: Option<Curva>,
 }
 
@@ -149,23 +280,34 @@ pub struct Keyframe {
 pub enum Valore {
     /// Opacità 0.0-1.0.
     Opacita(f64),
-    /// Spostamento (dx, dy) in pixel rispetto alla posizione iniziale.
+    /// Spostamento (dx, dy) in pixel rispetto alla posizione iniziale, nel sistema del
+    /// genitore (B.0.2).
     Traslazione(f64, f64),
     /// Rotazione in gradi.
     Rotazione(f64),
     /// Fattore di scala.
     Scala(f64),
+    /// Colore del canale `colore` (B.4.2). Il generatore lo riemette dai valori numerici con
+    /// la stessa regola dei colori statici (`#rrggbb` se opaco, altrimenti `rgba(…)`), mai
+    /// dal testo dell'utente.
+    Colore(Colore),
 }
 
 /// Effetto di un segmento sul proprio canale.
 #[derive(Debug, Clone, Copy)]
 enum Effetto {
     /// Raggiunge un valore assoluto.
-    Verso([f64; 2]),
+    Verso(Vett),
     /// Somma un delta al valore corrente.
-    Delta([f64; 2]),
+    Delta(Vett),
     /// Oscilla tra il valore corrente e `valore × (1 + ampiezza)`.
     Pulsazione { ampiezza: f64, bpm: f64 },
+    /// `entra da` (B.2.3): dal fuori campo del lato alla posizione dichiarata.
+    EntraDa(Direzione),
+    /// `esce verso` (B.2.2): dalla posizione corrente al fuori campo del lato.
+    EsceVerso(Direzione),
+    /// `orbita` (B.4.1) attorno all'attore di indice `centro` (indice di `Programma::attori`).
+    Orbita { centro: usize, raggio: f64, giri: f64, orario: bool },
 }
 
 /// Un'azione collocata nel tempo su un canale.
@@ -193,6 +335,13 @@ fn messaggio_cerchio_ruotato(nome: &str) -> String {
 /// Errori semantici (attori sconosciuti o duplicati, posizioni circolari, azioni
 /// sovrapposte, valori fuori dai limiti) con riga e suggerimento.
 pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
+    compila_con_tetto(programma, limiti::MAX_KEYFRAME_TOTALI)
+}
+
+/// Come [`compila`], con un tetto globale dei keyframe esplicito (i test lo abbassano per
+/// non dover generare davvero `MAX_KEYFRAME_TOTALI` keyframe).
+fn compila_con_tetto(programma: &Programma, massimo_keyframe: usize) -> Risultato<ScenaCompilata> {
+    let tetto = keyframe::Tetto::nuovo(massimo_keyframe);
     let palco = &programma.palco;
     for (nome, valore) in [("larghezza", palco.larghezza), ("altezza", palco.altezza)] {
         if !(1.0..=limiti::MAX_LATO_PALCO).contains(&valore) {
@@ -233,50 +382,101 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
         indici.insert(attore.nome.as_str(), i);
     }
 
-    let posizioni = risolvi_posizioni(programma, &indici)?;
-    let (segmenti, durata) = costruisci_segmenti(programma, &indici, &posizioni, &mut avvisi)?;
+    // B.0.5 passo 1: albero dei gruppi e posizioni dichiarate (pivot compresi).
+    let albero = gruppi::costruisci(&programma.attori, &indici)?;
+    let posizioni = posizioni::risolvi(programma, &indici, &albero)?;
+    let (mut segmenti, durata) = costruisci_segmenti(programma, &indici, &albero, &posizioni.centri, &mut avvisi)?;
+    for (attore, canali) in programma.attori.iter().zip(segmenti.iter_mut()) {
+        for canale in Canale::TUTTI {
+            let lista = &mut canali[canale.indice()];
+            lista.sort_by(|a, b| a.inizio.total_cmp(&b.inizio));
+            controlla_sovrapposizioni(&attore.nome, canale, lista)?;
+        }
+    }
 
-    let mut attori = Vec::with_capacity(programma.attori.len());
-    for (i, ((attore, (x, y)), canali)) in programma
-        .attori
-        .iter()
-        .zip(posizioni)
-        .zip(segmenti)
-        .enumerate()
-    {
-        let mut opacita_iniziale = attore.stile.opacita;
-        let mut animazioni = Vec::new();
-        for (canale, mut segmenti) in canali {
-            if segmenti.is_empty() {
+    // B.0.5 passo 2: canali che non dipendono da altri attori.
+    let n = programma.attori.len();
+    let mut accumulati: Vec<[Option<Accumulatore>; 5]> = (0..n).map(|_| Default::default()).collect();
+    let mut opacita_iniziale: Vec<f64> = programma.attori.iter().map(|a| a.stile.opacita).collect();
+    for (i, attore) in programma.attori.iter().enumerate() {
+        for canale in [Canale::Opacita, Canale::Rotazione, Canale::Scala, Canale::Colore] {
+            let lista = &segmenti[i][canale.indice()];
+            let Some(primo) = lista.first() else {
                 continue;
-            }
-            segmenti.sort_by(|a, b| a.inizio.total_cmp(&b.inizio));
-            controlla_sovrapposizioni(&attore.nome, canale, &segmenti)?;
+            };
             let iniziale = match canale {
                 Canale::Opacita => {
-                    if segmenti.first().is_some_and(|s| s.appare) {
-                        opacita_iniziale = 0.0;
+                    // A.3: se la prima azione di opacità è `appare sfumando`, si parte invisibili.
+                    if primo.appare {
+                        opacita_iniziale[i] = 0.0;
                     }
-                    [opacita_iniziale, 0.0]
+                    [opacita_iniziale[i], 0.0, 0.0, 0.0]
                 }
-                Canale::Traslazione => [0.0, 0.0],
-                Canale::Rotazione => [attore.stile.rotazione, 0.0],
-                Canale::Scala => [attore.stile.scala, 0.0],
+                Canale::Rotazione => [attore.stile.rotazione, 0.0, 0.0, 0.0],
+                Canale::Scala => [attore.stile.scala, 0.0, 0.0, 0.0],
+                Canale::Colore => vettore_colore(attore.stile.colore),
+                Canale::Traslazione => continue,
             };
-            animazioni.push(Animazione {
-                canale,
-                keyframe: genera_keyframe(canale, iniziale, &segmenti, durata)?,
-            });
+            accumulati[i][canale.indice()] = Some(genera_canale(iniziale, lista, durata, &tetto)?);
         }
-        animazioni.sort_by_key(|a| a.canale);
+    }
+
+    // B.0.5 passo 3: traslazione, dal livello più interno al più esterno.
+    let scala_rif: Vec<f64> = programma
+        .attori
+        .iter()
+        .zip(&accumulati)
+        .map(|(attore, canali)| {
+            canali[Canale::Scala.indice()]
+                .as_ref()
+                .and_then(Accumulatore::estensione)
+                .map_or(attore.stile.scala.abs(), |(min, max)| min[0].abs().max(max[0].abs()))
+        })
+        .collect();
+    let ruota: Vec<bool> = segmenti.iter().map(|c| !c[Canale::Rotazione.indice()].is_empty()).collect();
+    let segmenti_traslazione: Vec<Vec<Segmento>> =
+        segmenti.iter_mut().map(|c| std::mem::take(&mut c[Canale::Traslazione.indice()])).collect();
+    let contesto = traslazione::Contesto {
+        programma,
+        albero: &albero,
+        posizioni: &posizioni,
+        durata,
+        scala_rif: &scala_rif,
+        ruota: &ruota,
+        tetto: &tetto,
+    };
+    let traslazioni = traslazione::calcola(&contesto, &segmenti_traslazione)?;
+    for (canali, acc) in accumulati.iter_mut().zip(traslazioni) {
+        canali[Canale::Traslazione.indice()] = acc;
+    }
+
+    // Uscita in pre-ordine (B.3.5), con indici e coordinate relativi al genitore.
+    let mut nuovo_indice = vec![0usize; n];
+    for (k, &i) in albero.preordine.iter().enumerate() {
+        nuovo_indice[i] = k;
+    }
+    let mut attori = Vec::with_capacity(n);
+    for (k, &i) in albero.preordine.iter().enumerate() {
+        let attore = &programma.attori[i];
+        let (x, y) = posizioni.centri[i];
+        let (px, py) = albero.genitore[i].map_or((0.0, 0.0), |g| posizioni.centri[g]);
+        let animazioni: Vec<Animazione> = Canale::TUTTI
+            .into_iter()
+            .filter_map(|canale| {
+                accumulati[i][canale.indice()]
+                    .take()
+                    .map(|acc| Animazione { canale, keyframe: acc.in_keyframe(canale) })
+            })
+            .collect();
         attori.push(AttoreCompilato {
-            id: format!("a{i}"),
+            id: format!("a{k}"),
             nome: attore.nome.clone(),
             forma: attore.forma.clone(),
             stile: attore.stile.clone(),
-            x,
-            y,
-            opacita_iniziale,
+            genitore: albero.genitore[i].map(|g| nuovo_indice[g]),
+            x: x - px,
+            y: y - py,
+            opacita_iniziale: opacita_iniziale[i],
             scala_iniziale: attore.stile.scala,
             rotazione_iniziale: attore.stile.rotazione,
             animazioni,
@@ -336,6 +536,8 @@ fn valida_attore(attore: &Attore) -> Risultato<()> {
                 valida_nome_font(f).map_err(|m| Errore::alla_riga(riga, m))?;
             }
         }
+        // Membri e profondità sono controllati da `gruppi::costruisci` (B.3.8).
+        Forma::Gruppo { .. } => {}
     }
     if !(0.0..=1.0).contains(&attore.stile.opacita) {
         return Err(Errore::alla_riga(riga, "l'opacità deve essere tra 0.0 e 1.0"));
@@ -397,97 +599,20 @@ fn controlla_coordinate(x: f64, y: f64, riga: usize) -> Risultato<(f64, f64)> {
     Ok((x, y))
 }
 
-/// Calcola il centro assoluto di ogni attore, risolvendo le catene di posizioni
-/// relative in modo iterativo (nessuna ricorsione: niente stack overflow) e
-/// rilevando i riferimenti circolari.
-fn risolvi_posizioni(
-    programma: &Programma,
-    indici: &HashMap<&str, usize>,
-) -> Risultato<Vec<(f64, f64)>> {
-    let attori = &programma.attori;
-    let (l, h) = (programma.palco.larghezza, programma.palco.altezza);
-    let mut risolte: Vec<Option<(f64, f64)>> = vec![None; attori.len()];
-    let mut in_catena = vec![false; attori.len()];
-
-    for i in 0..attori.len() {
-        let mut catena = Vec::new();
-        let mut corrente = i;
-        while risolte[corrente].is_none() {
-            if in_catena[corrente] {
-                let nomi: Vec<String> = catena
-                    .iter()
-                    .map(|&j: &usize| format!("\"{}\"", attori[j].nome))
-                    .collect();
-                return Err(Errore::alla_riga(
-                    attori[corrente].riga,
-                    format!("posizioni circolari: {} dipendono l'uno dall'altro", nomi.join(" → ")),
-                )
-                .con_suggerimento("almeno uno degli attori deve avere una posizione assoluta o ancorata al palco"));
-            }
-            in_catena[corrente] = true;
-            catena.push(corrente);
-            match &attori[corrente].posizione {
-                Posizione::Relativa { riferimento, .. } => {
-                    let attore = &attori[corrente];
-                    corrente = indice_attore(riferimento, indici, attore.riga, Some(&attore.nome))?;
-                }
-                _ => break,
-            }
-        }
-        for &j in catena.iter().rev() {
-            let attore = &attori[j];
-            let punto = match &attore.posizione {
-                Posizione::Assoluta { x, y } => (*x, *y),
-                Posizione::Palco(ancora) => {
-                    let (fx, fy) = match ancora {
-                        Ancora::Centro => (0.5, 0.5),
-                        Ancora::Alto => (0.5, MARGINE_ANCORE),
-                        Ancora::Basso => (0.5, 1.0 - MARGINE_ANCORE),
-                        Ancora::Sinistra => (MARGINE_ANCORE, 0.5),
-                        Ancora::Destra => (1.0 - MARGINE_ANCORE, 0.5),
-                        Ancora::AltoSinistra => (MARGINE_ANCORE, MARGINE_ANCORE),
-                        Ancora::AltoDestra => (1.0 - MARGINE_ANCORE, MARGINE_ANCORE),
-                        Ancora::BassoSinistra => (MARGINE_ANCORE, 1.0 - MARGINE_ANCORE),
-                        Ancora::BassoDestra => (1.0 - MARGINE_ANCORE, 1.0 - MARGINE_ANCORE),
-                    };
-                    (l * fx, h * fy)
-                }
-                Posizione::Relativa { direzione, riferimento, distanza } => {
-                    let k = indice_attore(riferimento, indici, attore.riga, Some(&attore.nome))?;
-                    let (rx, ry) = risolte[k].ok_or_else(|| {
-                        Errore::alla_riga(attore.riga, "posizione relativa non risolvibile")
-                    })?;
-                    let (dx, dy) = direzione.vettore();
-                    (rx + dx * distanza, ry + dy * distanza)
-                }
-            };
-            risolte[j] = Some(controlla_coordinate(punto.0, punto.1, attore.riga)?);
-            in_catena[j] = false;
-        }
-    }
-
-    risolte
-        .into_iter()
-        .map(|p| p.ok_or_else(|| Errore::globale("errore interno: posizione non risolta")))
-        .collect()
-}
-
-type SegmentiPerCanale = Vec<(Canale, Vec<Segmento>)>;
+/// Segmenti di un attore, uno per canale (indice [`Canale::indice`]).
+type SegmentiPerCanale = [Vec<Segmento>; 5];
 
 /// Colloca i blocchi nel tempo e converte ogni azione in un segmento su un canale.
-/// Restituisce i segmenti per attore e la durata totale della scena.
+/// Restituisce i segmenti per attore (indici di `Programma::attori`) e la durata totale
+/// della scena. `posizioni` sono i centri dichiarati.
 fn costruisci_segmenti(
     programma: &Programma,
     indici: &HashMap<&str, usize>,
+    albero: &Albero,
     posizioni: &[(f64, f64)],
     avvisi: &mut Vec<Avviso>,
 ) -> Risultato<(Vec<SegmentiPerCanale>, f64)> {
-    let canali = [Canale::Opacita, Canale::Traslazione, Canale::Rotazione, Canale::Scala];
-    let mut per_attore: Vec<SegmentiPerCanale> = programma
-        .attori
-        .iter()
-        .map(|_| canali.iter().map(|c| (*c, Vec::new())).collect())
-        .collect();
+    let mut per_attore: Vec<SegmentiPerCanale> = programma.attori.iter().map(|_| Default::default()).collect();
 
     let mut fine_precedente = 0.0_f64;
     let mut durata = 0.0_f64;
@@ -513,22 +638,36 @@ fn costruisci_segmenti(
             let attore = &programma.attori[i];
             let (x0, y0) = posizioni[i];
             let errore = |m: String| Errore::alla_riga(azione.riga, m);
-            let (canale, effetto, appare) = match azione.verbo {
-                Verbo::AppareSfumando => {
-                    (Canale::Opacita, Effetto::Verso([attore.stile.opacita, 0.0]), true)
+            let (canale, effetto, appare) = match &azione.verbo {
+                Verbo::EntraDa(lato) => (Canale::Traslazione, Effetto::EntraDa(*lato), false),
+                Verbo::EsceVerso(lato) => (Canale::Traslazione, Effetto::EsceVerso(*lato), false),
+                Verbo::Orbita { .. } => {
+                    (Canale::Traslazione, valida_orbita(programma, indici, albero, i, azione)?, false)
                 }
-                Verbo::ScompareSfumando => (Canale::Opacita, Effetto::Verso([0.0, 0.0]), false),
+                Verbo::CambiaColore(colore) => {
+                    if matches!(attore.forma, Forma::Gruppo { .. }) {
+                        return Err(errore(format!("\"{}\" è un gruppo e non ha un colore da cambiare", attore.nome))
+                            .con_suggerimento("cambia il colore dei singoli membri"));
+                    }
+                    (Canale::Colore, Effetto::Verso(vettore_colore(*colore)), false)
+                }
+                Verbo::AppareSfumando => {
+                    (Canale::Opacita, Effetto::Verso([attore.stile.opacita, 0.0, 0.0, 0.0]), true)
+                }
+                Verbo::ScompareSfumando => (Canale::Opacita, Effetto::Verso([0.0; 4]), false),
                 Verbo::CambiaOpacita(v) => {
+                    let v = *v;
                     if !(0.0..=1.0).contains(&v) {
                         return Err(errore("l'opacità deve essere tra 0.0 e 1.0".into()));
                     }
-                    (Canale::Opacita, Effetto::Verso([v, 0.0]), false)
+                    (Canale::Opacita, Effetto::Verso([v, 0.0, 0.0, 0.0]), false)
                 }
                 Verbo::SiSpostaA { x, y } => {
-                    controlla_coordinate(x, y, azione.riga)?;
-                    (Canale::Traslazione, Effetto::Verso([x - x0, y - y0]), false)
+                    let (x, y) = controlla_coordinate(*x, *y, azione.riga)?;
+                    (Canale::Traslazione, Effetto::Verso([x - x0, y - y0, 0.0, 0.0]), false)
                 }
                 Verbo::Scivola { direzione, distanza } => {
+                    let (direzione, distanza) = (*direzione, *distanza);
                     if distanza.abs() > limiti::MAX_COORDINATA {
                         return Err(errore(format!(
                             "spostamento troppo grande (massimo {} pixel)",
@@ -536,9 +675,10 @@ fn costruisci_segmenti(
                         )));
                     }
                     let (dx, dy) = direzione.vettore();
-                    (Canale::Traslazione, Effetto::Delta([dx * distanza, dy * distanza]), false)
+                    (Canale::Traslazione, Effetto::Delta([dx * distanza, dy * distanza, 0.0, 0.0]), false)
                 }
                 Verbo::Ruota(gradi) => {
+                    let gradi = *gradi;
                     if gradi.abs() > limiti::MAX_GRADI {
                         return Err(errore(format!("rotazione troppo grande (massimo {} gradi)", limiti::MAX_GRADI)));
                     }
@@ -550,15 +690,17 @@ fn costruisci_segmenti(
                                 ),
                         );
                     }
-                    (Canale::Rotazione, Effetto::Delta([gradi, 0.0]), false)
+                    (Canale::Rotazione, Effetto::Delta([gradi, 0.0, 0.0, 0.0]), false)
                 }
                 Verbo::ScalaFinoA(f) => {
+                    let f = *f;
                     if f > limiti::MAX_SCALA {
                         return Err(errore(format!("fattore di scala troppo grande (massimo {})", limiti::MAX_SCALA)));
                     }
-                    (Canale::Scala, Effetto::Verso([f, 0.0]), false)
+                    (Canale::Scala, Effetto::Verso([f, 0.0, 0.0, 0.0]), false)
                 }
                 Verbo::Pulsa { intensita, bpm } => {
+                    let (intensita, bpm) = (*intensita, *bpm);
                     if !(bpm > 0.0 && bpm <= limiti::MAX_BPM) {
                         return Err(errore(format!("il ritmo deve essere tra 1 e {} BPM", limiti::MAX_BPM)));
                     }
@@ -569,12 +711,57 @@ fn costruisci_segmenti(
                 }
             };
             let segmento = Segmento { inizio, fine, effetto, easing: azione.easing, appare, riga: azione.riga };
-            if let Some((_, lista)) = per_attore[i].iter_mut().find(|(c, _)| *c == canale) {
-                lista.push(segmento);
-            }
+            per_attore[i][canale.indice()].push(segmento);
         }
     }
     Ok((per_attore, durata))
+}
+
+/// Controlla un'azione `orbita` dell'attore `i` (SPECIFICA B.4.1) e ne costruisce l'effetto.
+///
+/// # Errori
+/// Centro inesistente o uguale all'attore, raggio o giri non validi, centro che non è un
+/// fratello né il gruppo genitore diretto.
+fn valida_orbita(
+    programma: &Programma,
+    indici: &HashMap<&str, usize>,
+    albero: &Albero,
+    i: usize,
+    azione: &Azione,
+) -> Risultato<Effetto> {
+    let riga = azione.riga;
+    let Verbo::Orbita { centro, raggio, giri, orario } = &azione.verbo else {
+        return Err(Errore::globale("errore interno: l'azione non è un'orbita"));
+    };
+    let (raggio, giri, orario) = (*raggio, *giri, *orario);
+    let nome = &programma.attori[i].nome;
+    let k = indice_attore(centro, indici, riga, Some(nome))?;
+    if k == i {
+        return Err(Errore::alla_riga(riga, format!("\"{nome}\" non può orbitare attorno a sé stesso"))
+            .con_suggerimento("scegli un altro attore come centro dell'orbita"));
+    }
+    if raggio.is_nan() || raggio <= 0.0 {
+        return Err(Errore::alla_riga(riga, "il raggio dell'orbita deve essere maggiore di 0"));
+    }
+    if raggio > limiti::MAX_COORDINATA {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("il raggio dell'orbita è troppo grande (massimo {} pixel)", limiti::MAX_COORDINATA),
+        ));
+    }
+    if giri.is_nan() || giri <= 0.0 {
+        return Err(Errore::alla_riga(riga, "il numero di giri deve essere maggiore di 0")
+            .con_suggerimento("per invertire il verso usa «in senso orario» o «in senso antiorario»"));
+    }
+    let fratelli = albero.genitore[k] == albero.genitore[i];
+    if !fratelli && albero.genitore[i] != Some(k) {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("\"{nome}\" e \"{centro}\" appartengono a gruppi diversi: l'orbita richiede lo stesso gruppo"),
+        )
+        .con_suggerimento("metti entrambi nello stesso gruppo, oppure fai orbitare il gruppo"));
+    }
+    Ok(Effetto::Orbita { centro: k, raggio, giri, orario })
 }
 
 fn controlla_sovrapposizioni(nome: &str, canale: Canale, segmenti: &[Segmento]) -> Risultato<()> {
@@ -597,80 +784,53 @@ fn controlla_sovrapposizioni(nome: &str, canale: Canale, segmenti: &[Segmento]) 
     Ok(())
 }
 
-/// Accumula keyframe fondendo quelli che cadono nello stesso istante.
-struct Accumulatore {
-    canale: Canale,
-    durata: f64,
-    keyframe: Vec<Keyframe>,
-}
-
-impl Accumulatore {
-    fn aggiungi(&mut self, tempo: f64, valore: [f64; 2], curva: Option<Curva>) -> Risultato<()> {
-        let offset = if self.durata > 0.0 { (tempo / self.durata).clamp(0.0, 1.0) } else { 0.0 };
-        let valore = self.canale.valore(valore);
-        if let Some(ultimo) = self.keyframe.last_mut()
-            && (ultimo.offset - offset).abs() < EPSILON
-        {
-            ultimo.valore = valore;
-            if curva.is_some() {
-                ultimo.curva = curva;
-            }
-            return Ok(());
-        }
-        if self.keyframe.len() >= limiti::MAX_KEYFRAME {
-            return Err(Errore::globale(format!(
-                "animazione troppo complessa: più di {} fotogrammi chiave",
-                limiti::MAX_KEYFRAME
-            ))
-            .con_suggerimento("riduci il ritmo delle pulsazioni o la durata dei blocchi"));
-        }
-        self.keyframe.push(Keyframe { offset, valore, curva });
-        Ok(())
-    }
-}
-
-/// Converte i segmenti (ordinati, non sovrapposti) di un canale in keyframe sull'intera scena.
-fn genera_keyframe(
-    canale: Canale,
-    iniziale: [f64; 2],
-    segmenti: &[Segmento],
-    durata: f64,
-) -> Risultato<Vec<Keyframe>> {
-    let mut acc = Accumulatore { canale, durata, keyframe: Vec::new() };
+/// Converte i segmenti (ordinati, non sovrapposti) di un canale che non dipende da altri
+/// attori in keyframe sull'intera scena.
+fn genera_canale(iniziale: Vett, segmenti: &[Segmento], durata: f64, tetto: &keyframe::Tetto) -> Risultato<Accumulatore> {
+    let mut acc = Accumulatore::nuovo(durata, tetto);
     let mut corrente = iniziale;
     acc.aggiungi(0.0, corrente, None)?;
-
     for s in segmenti {
-        let c = curva(s.easing);
-        acc.aggiungi(s.inizio, corrente, Some(c.clone()))?;
-        match s.effetto {
-            Effetto::Verso(v) => corrente = v,
-            Effetto::Delta(d) => corrente = [corrente[0] + d[0], corrente[1] + d[1]],
-            Effetto::Pulsazione { ampiezza, bpm } => {
-                let durata_seg = s.fine - s.inizio;
-                let periodo = 60.0 / bpm;
-                let battiti = (durata_seg / periodo).round().max(1.0);
-                if battiti * 2.0 > limiti::MAX_KEYFRAME as f64 {
-                    return Err(Errore::alla_riga(
-                        s.riga,
-                        format!("troppi battiti ({battiti}) per questa pulsazione"),
-                    )
-                    .con_suggerimento("riduci il ritmo o la durata del blocco"));
-                }
-                let mezzi = battiti as usize * 2;
-                let passo = durata_seg / mezzi as f64;
-                let base = corrente[0];
-                let picco = base * (1.0 + ampiezza);
-                for k in 1..mezzi {
-                    let v = if k % 2 == 1 { picco } else { base };
-                    acc.aggiungi(s.inizio + passo * k as f64, [v, 0.0], Some(c.clone()))?;
-                }
-            }
-        }
-        acc.aggiungi(s.fine, corrente, None)?;
+        applica_base(&mut acc, &mut corrente, s)?;
     }
     acc.aggiungi(durata, corrente, None)?;
-    Ok(acc.keyframe)
+    Ok(acc)
+}
+
+/// Applica un segmento `Verso`, `Delta` o `Pulsazione` a partire dal valore `corrente`, che
+/// viene aggiornato al valore finale del segmento.
+///
+/// # Errori
+/// Troppi battiti o fotogrammi chiave; un effetto di traslazione speciale (`entra da`,
+/// `esce verso`, `orbita`) è un errore interno: lo gestisce [`traslazione`].
+fn applica_base(acc: &mut Accumulatore, corrente: &mut Vett, s: &Segmento) -> Risultato<()> {
+    let c = curva(s.easing);
+    acc.aggiungi(s.inizio, *corrente, Some(c.clone()))?;
+    match s.effetto {
+        Effetto::Verso(v) => *corrente = v,
+        Effetto::Delta(d) => *corrente = [corrente[0] + d[0], corrente[1] + d[1], corrente[2] + d[2], corrente[3] + d[3]],
+        Effetto::EntraDa(_) | Effetto::EsceVerso(_) | Effetto::Orbita { .. } => {
+            return Err(Errore::globale("errore interno: effetto di traslazione fuori dal suo canale"));
+        }
+        Effetto::Pulsazione { ampiezza, bpm } => {
+            let durata_seg = s.fine - s.inizio;
+            let periodo = 60.0 / bpm;
+            let battiti = (durata_seg / periodo).round().max(1.0);
+            if battiti * 2.0 > limiti::MAX_KEYFRAME as f64 {
+                return Err(Errore::alla_riga(s.riga, format!("troppi battiti ({battiti}) per questa pulsazione"))
+                    .con_suggerimento("riduci il ritmo o la durata del blocco"));
+            }
+            let mezzi = battiti as usize * 2;
+            let passo = durata_seg / mezzi as f64;
+            let base = corrente[0];
+            let picco = base * (1.0 + ampiezza);
+            for k in 1..mezzi {
+                let v = if k % 2 == 1 { picco } else { base };
+                acc.aggiungi(s.inizio + passo * k as f64, [v, 0.0, 0.0, 0.0], Some(c.clone()))?;
+            }
+        }
+    }
+    acc.aggiungi(s.fine, *corrente, None)
 }
 
 #[cfg(test)]
@@ -809,6 +969,533 @@ mod test {
         let s = compila(&p).unwrap();
         let righe: Vec<usize> = s.avvisi.iter().map(|a| a.riga).collect();
         assert_eq!(righe, [4, 9]);
+    }
+
+    #[test]
+    fn contratto_canale_colore() {
+        let testo = Forma::Testo { contenuto: "x".into(), grandezza: 10.0, font: None, grassetto: false };
+        let cerchio = Forma::Cerchio { raggio: 1.0 };
+        assert_eq!(Canale::Colore.suffisso(), "colore");
+        assert_eq!(Canale::Colore.proprieta_css(&testo), "color");
+        assert_eq!(Canale::Colore.proprieta_css(&cerchio), "background-color");
+        assert_eq!(Canale::Colore.bersaglio(), Bersaglio::Forma);
+        assert_eq!(Canale::Scala.proprieta_css(&testo), "scale");
+        assert_eq!(Canale::Traslazione.bersaglio(), Bersaglio::Wrapper);
+        assert!(Canale::Scala < Canale::Colore);
+    }
+
+    #[test]
+    fn senza_gruppi_tutti_di_primo_livello() {
+        let s = compila(&programma(
+            "Crea un quadrato chiamato \"a\" al centro.\nCrea un cerchio chiamato \"b\" al centro.\n",
+            |_| {},
+        ))
+        .unwrap();
+        assert!(s.attori.iter().all(|a| a.genitore.is_none()));
+        assert_eq!(s.figli(None).collect::<Vec<_>>(), [0, 1]);
+        assert_eq!(s.figli(Some(0)).count(), 0);
+    }
+
+    // ---- Blocco 2B (B.2, B.3, B.4): AST costruito a mano ----
+
+    use crate::ast::{Ancora, Attore, Blocco, Palco, Posizione, Timeline};
+
+    fn crea(nome: &str, forma: Forma, posizione: Posizione) -> Attore {
+        Attore { nome: nome.into(), forma, stile: Stile::default(), posizione, riga: 0 }
+    }
+
+    fn cerchio(nome: &str, raggio: f64, x: f64, y: f64) -> Attore {
+        crea(nome, Forma::Cerchio { raggio }, Posizione::Assoluta { x, y })
+    }
+
+    fn gruppo(nome: &str, membri: &[&str]) -> Attore {
+        let membri = membri.iter().map(|m| m.to_string()).collect();
+        crea(nome, Forma::Gruppo { membri }, Posizione::Palco(Ancora::Centro))
+    }
+
+    type Riga<'a> = (&'a str, Verbo, Easing);
+
+    /// Palco `l × h`; gli attori ricevono le righe 2, 3, ...; ogni blocco e ogni azione la
+    /// riga successiva.
+    fn scena(l: f64, h: f64, mut attori: Vec<Attore>, blocchi: Vec<(f64, f64, Vec<Riga>)>) -> Programma {
+        let mut riga = 1;
+        for a in &mut attori {
+            riga += 1;
+            a.riga = riga;
+        }
+        let blocchi = blocchi
+            .into_iter()
+            .map(|(inizio, fine, azioni)| {
+                riga += 1;
+                let riga_blocco = riga;
+                let azioni = azioni
+                    .into_iter()
+                    .map(|(attore, verbo, easing)| {
+                        riga += 1;
+                        crate::ast::Azione { attore: attore.into(), verbo, easing, riga }
+                    })
+                    .collect();
+                Blocco { tempo: Tempo::Assoluto { inizio, fine }, azioni, riga: riga_blocco }
+            })
+            .collect();
+        Programma {
+            palco: Palco { larghezza: l, altezza: h, sfondo: Colore::rgb(0, 0, 0), fps: None, riga: 1 },
+            attori,
+            timeline: Timeline { blocchi },
+        }
+    }
+
+    fn per_nome<'a>(s: &'a ScenaCompilata, nome: &str) -> (usize, &'a AttoreCompilato) {
+        s.attori.iter().enumerate().find(|(_, a)| a.nome == nome).unwrap()
+    }
+
+    fn animazione<'a>(s: &'a ScenaCompilata, nome: &str, canale: Canale) -> &'a Animazione {
+        per_nome(s, nome).1.animazioni.iter().find(|a| a.canale == canale).unwrap()
+    }
+
+    fn traslazioni(s: &ScenaCompilata, nome: &str) -> Vec<(f64, f64)> {
+        animazione(s, nome, Canale::Traslazione)
+            .keyframe
+            .iter()
+            .map(|k| match k.valore {
+                Valore::Traslazione(x, y) => (x, y),
+                altro => panic!("valore inatteso {altro:?}"),
+            })
+            .collect()
+    }
+
+    fn vicino(a: (f64, f64), b: (f64, f64)) -> bool {
+        (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6
+    }
+
+    fn orbita(centro: &str, raggio: f64, giri: f64, orario: bool) -> Verbo {
+        Verbo::Orbita { centro: centro.into(), raggio, giri, orario }
+    }
+
+    /// Esempio completo di SPECIFICA B.8.
+    fn esempio_b8() -> Programma {
+        let colore = |r, g, b| Colore::rgb(r, g, b);
+        let mut sole = cerchio("sole", 60.0, 0.0, 0.0);
+        sole.posizione = Posizione::Palco(Ancora::Centro);
+        sole.stile.colore = colore(0xF5, 0x9E, 0x0B);
+        let mut terra = cerchio("terra", 18.0, 0.0, 0.0);
+        terra.posizione =
+            Posizione::Relativa { direzione: Direzione::Destra, riferimento: "sole".into(), distanza: 200.0 };
+        let mut sistema = gruppo("sistema", &["sole", "terra"]);
+        sistema.stile.scala = 0.8;
+        sistema.stile.livello = 1;
+        let titolo = crea(
+            "titolo",
+            Forma::Testo { contenuto: "SISTEMA ORBITALE".into(), grandezza: 36.0, font: None, grassetto: true },
+            Posizione::Palco(Ancora::Alto),
+        );
+        let mut stella = crea(
+            "stella",
+            Forma::Rettangolo { larghezza: 24.0, altezza: 24.0, arrotondamento: 0.0 },
+            Posizione::Palco(Ancora::BassoDestra),
+        );
+        stella.stile.scala = 0.0;
+        stella.stile.rotazione = 45.0;
+        scena(
+            1280.0,
+            720.0,
+            vec![sole, terra, sistema, titolo, stella],
+            vec![
+                (
+                    0.0,
+                    1.5,
+                    vec![
+                        ("sistema", Verbo::EntraDa(Direzione::Sinistra), Easing::Scatto),
+                        ("titolo", Verbo::EntraDa(Direzione::Alto), Easing::Morbido),
+                    ],
+                ),
+                (
+                    1.5,
+                    7.5,
+                    vec![
+                        ("terra", orbita("sole", 200.0, 2.0, true), Easing::Lineare),
+                        ("sole", Verbo::Pulsa { intensita: 0.2, bpm: 30.0 }, Easing::Morbido),
+                        ("sole", Verbo::CambiaColore(colore(0xFD, 0xE6, 0x8A)), Easing::Morbido),
+                        ("stella", Verbo::ScalaFinoA(1.5), Easing::Elastico),
+                        ("stella", Verbo::Ruota(180.0), Easing::Elastico),
+                    ],
+                ),
+                (
+                    7.5,
+                    9.0,
+                    vec![
+                        ("sistema", Verbo::EsceVerso(Direzione::Destra), Easing::Morbido),
+                        ("titolo", Verbo::EsceVerso(Direzione::Alto), Easing::Morbido),
+                        ("stella", Verbo::ScompareSfumando, Easing::Morbido),
+                    ],
+                ),
+            ],
+        )
+    }
+
+    #[test]
+    fn esempio_b8_pivot_albero_e_fuori_campo() {
+        let s = compila(&esempio_b8()).unwrap();
+        assert!(s.avvisi.is_empty());
+        // Pre-ordine: "sistema" prende il posto di "sole" (creato per primo).
+        let nomi: Vec<&str> = s.attori.iter().map(|a| a.nome.as_str()).collect();
+        assert_eq!(nomi, ["sistema", "sole", "terra", "titolo", "stella"]);
+        let id: Vec<&str> = s.attori.iter().map(|a| a.id.as_str()).collect();
+        assert_eq!(id, ["a0", "a1", "a2", "a3", "a4"]);
+        let genitori: Vec<Option<usize>> = s.attori.iter().map(|a| a.genitore).collect();
+        assert_eq!(genitori, [None, Some(0), Some(0), None, None]);
+        // Pivot P = (719, 360); i membri sono relativi a P.
+        let (_, sistema) = per_nome(&s, "sistema");
+        assert_eq!((sistema.x, sistema.y), (719.0, 360.0));
+        assert_eq!((s.attori[1].x, s.attori[1].y), (-79.0, 0.0));
+        assert_eq!((s.attori[2].x, s.attori[2].y), (121.0, 0.0));
+        // "sistema" parte fuori campo: pivot a x = −113.2.
+        let t = traslazioni(&s, "sistema");
+        assert!(vicino(t[0], (-113.2 - 719.0, 0.0)), "{t:?}");
+        // "titolo": stima 576 × 54, centro fuori campo a y = −29 (dichiarato a y = 72).
+        let t = traslazioni(&s, "titolo");
+        assert!(vicino(t[0], (0.0, -29.0 - 72.0)), "{t:?}");
+        assert!(vicino(*t.last().unwrap(), (0.0, -29.0 - 72.0)), "{t:?}");
+        // "terra": distanza = raggio, nessun salto; 2 giri da 45 campioni.
+        let terra = animazione(&s, "terra", Canale::Traslazione);
+        assert!(terra.keyframe.iter().all(|k| k.curva != Some(Curva::Gradino)));
+        // Stato iniziale + 91 campioni + fine scena.
+        assert_eq!(terra.keyframe.len(), 1 + 91 + 1);
+        // Colore di "sole": dal dichiarato a quello finale.
+        let colori: Vec<Valore> = animazione(&s, "sole", Canale::Colore).keyframe.iter().map(|k| k.valore).collect();
+        assert_eq!(colori.first(), Some(&Valore::Colore(Colore::rgb(0xF5, 0x9E, 0x0B))));
+        assert_eq!(colori.last(), Some(&Valore::Colore(Colore::rgb(0xFD, 0xE6, 0x8A))));
+        // Il gruppo non ha mai il canale colore.
+        assert!(sistema.animazioni.iter().all(|a| a.canale != Canale::Colore));
+    }
+
+    #[test]
+    fn entra_ed_esce_con_salto() {
+        let q = crea(
+            "q",
+            Forma::Rettangolo { larghezza: 100.0, altezza: 100.0, arrotondamento: 0.0 },
+            Posizione::Palco(Ancora::Centro),
+        );
+        let p = scena(
+            400.0,
+            300.0,
+            vec![q],
+            vec![
+                (0.0, 1.0, vec![("q", Verbo::EntraDa(Direzione::Sinistra), Easing::Lineare)]),
+                (1.0, 2.0, vec![("q", Verbo::EsceVerso(Direzione::Destra), Easing::Lineare)]),
+                (2.0, 3.0, vec![("q", Verbo::EntraDa(Direzione::Sinistra), Easing::Lineare)]),
+            ],
+        );
+        let s = compila(&p).unwrap();
+        // Fuori campo: sinistra x = −50 − 2, destra x = 400 + 50 + 2 (centro dichiarato x = 200).
+        assert_eq!(traslazioni(&s, "q"), [(-252.0, 0.0), (0.0, 0.0), (252.0, 0.0), (-252.0, 0.0), (0.0, 0.0)]);
+        let k = &animazione(&s, "q", Canale::Traslazione).keyframe;
+        assert_eq!(k[2].curva, Some(Curva::Gradino));
+        assert!((k[3].offset - 2.001 / 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn esce_verso_mantiene_l_altro_asse() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0)],
+            vec![
+                (0.0, 1.0, vec![("c", Verbo::Scivola { direzione: Direzione::Destra, distanza: 30.0 }, Easing::Lineare)]),
+                (1.0, 2.0, vec![("c", Verbo::EsceVerso(Direzione::Basso), Easing::Lineare)]),
+            ],
+        );
+        let s = compila(&p).unwrap();
+        // y fuori campo = 300 + 10 + 2 = 312, cioè dy = 162; dx resta 30.
+        assert_eq!(traslazioni(&s, "c").last(), Some(&(30.0, 162.0)));
+    }
+
+    #[test]
+    fn ingombro_prudente_usa_scala_e_rotazione_animate() {
+        let mut q = crea(
+            "q",
+            Forma::Rettangolo { larghezza: 60.0, altezza: 80.0, arrotondamento: 0.0 },
+            Posizione::Assoluta { x: 200.0, y: 150.0 },
+        );
+        q.stile.scala = 2.0;
+        let p = scena(
+            400.0,
+            300.0,
+            vec![q],
+            vec![
+                (0.0, 1.0, vec![("q", Verbo::Ruota(90.0), Easing::Lineare)]),
+                (1.0, 2.0, vec![("q", Verbo::EsceVerso(Direzione::Sinistra), Easing::Lineare)]),
+            ],
+        );
+        let s = compila(&p).unwrap();
+        // Rotazione animata → cerchio circoscritto: 2 × √(30² + 40²) = 100.
+        let ultimo = *traslazioni(&s, "q").last().unwrap();
+        assert!(vicino(ultimo, (-102.0 - 200.0, 0.0)), "{ultimo:?}");
+    }
+
+    fn orbita_semplice(raggio: f64, orario: bool) -> ScenaCompilata {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0), cerchio("p", 5.0, 300.0, 150.0)],
+            vec![(0.0, 1.0, vec![("p", orbita("c", raggio, 0.25, orario), Easing::Lineare)])],
+        );
+        compila(&p).unwrap()
+    }
+
+    #[test]
+    fn orbita_verso_e_campioni() {
+        // Raggio 100 → 36 campioni per giro → 9 per un quarto di giro (10 keyframe).
+        let s = orbita_semplice(100.0, true);
+        let t = traslazioni(&s, "p");
+        assert_eq!(t.len(), 10);
+        assert!(vicino(t[0], (0.0, 0.0)));
+        // Orario sullo schermo (y verso il basso): da destra del centro a sotto.
+        assert!(vicino(*t.last().unwrap(), (-100.0, 100.0)), "{t:?}");
+        let s = orbita_semplice(100.0, false);
+        assert!(vicino(*traslazioni(&s, "p").last().unwrap(), (-100.0, -100.0)));
+    }
+
+    #[test]
+    fn orbita_con_salto_sul_cerchio() {
+        let s = orbita_semplice(50.0, true);
+        let k = &animazione(&s, "p", Canale::Traslazione).keyframe;
+        assert_eq!(k.len(), 11);
+        assert_eq!(k[0].curva, Some(Curva::Gradino));
+        assert_eq!(k[1].valore, Valore::Traslazione(-50.0, 0.0));
+        assert!((k[1].offset - 0.001).abs() < 1e-12);
+    }
+
+    #[test]
+    fn orbita_attorno_a_un_fratello_in_movimento() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0), cerchio("p", 5.0, 300.0, 150.0)],
+            vec![
+                (0.0, 1.0, vec![("c", Verbo::SiSpostaA { x: 100.0, y: 150.0 }, Easing::Lineare)]),
+                (1.0, 2.0, vec![("p", orbita("c", 200.0, 0.5, true), Easing::Morbido)]),
+            ],
+        );
+        let s = compila(&p).unwrap();
+        let k = &animazione(&s, "p", Canale::Traslazione).keyframe;
+        // Centro statico in (100, 150): distanza 200 = raggio, nessun salto.
+        assert!(k.iter().all(|k| k.curva != Some(Curva::Gradino)));
+        assert!(vicino(*traslazioni(&s, "p").last().unwrap(), (-400.0, 0.0)));
+    }
+
+    #[test]
+    fn orbita_attorno_al_gruppo_genitore() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 100.0, 150.0), cerchio("p", 10.0, 300.0, 150.0), gruppo("g", &["c", "p"])],
+            vec![(0.0, 1.0, vec![("p", orbita("g", 100.0, 1.0, false), Easing::Lineare)])],
+        );
+        let s = compila(&p).unwrap();
+        // P = (200, 150): "p" è già sul cerchio di raggio 100 e torna al punto di partenza.
+        assert!(vicino(*traslazioni(&s, "p").last().unwrap(), (0.0, 0.0)));
+    }
+
+    fn errore_orbita(verbo: Verbo, attori: Vec<Attore>) -> String {
+        let p = scena(400.0, 300.0, attori, vec![(0.0, 1.0, vec![("p", verbo, Easing::Lineare)])]);
+        compila(&p).unwrap_err().messaggio
+    }
+
+    #[test]
+    fn errori_dell_orbita() {
+        let due = || vec![cerchio("c", 10.0, 200.0, 150.0), cerchio("p", 5.0, 300.0, 150.0)];
+        assert_eq!(errore_orbita(orbita("p", 10.0, 1.0, false), due()), "\"p\" non può orbitare attorno a sé stesso");
+        assert_eq!(
+            errore_orbita(orbita("c", 0.0, 1.0, false), due()),
+            "il raggio dell'orbita deve essere maggiore di 0"
+        );
+        assert_eq!(errore_orbita(orbita("c", 10.0, 0.0, false), due()), "il numero di giri deve essere maggiore di 0");
+        assert_eq!(
+            errore_orbita(orbita("c", 10.0, 1e6, false), due()),
+            "orbita troppo lunga: 36000001 fotogrammi chiave (massimo 10000)"
+        );
+        assert_eq!(errore_orbita(orbita("x", 10.0, 1.0, false), due()), "non esiste nessun attore chiamato \"x\"");
+        let mut attori = due();
+        attori.push(gruppo("g", &["c"]));
+        assert_eq!(
+            errore_orbita(orbita("c", 10.0, 1.0, false), attori),
+            "\"p\" e \"c\" appartengono a gruppi diversi: l'orbita richiede lo stesso gruppo"
+        );
+    }
+
+    #[test]
+    fn posizioni_relative_a_un_gruppo_e_cicli() {
+        let mut x = cerchio("x", 5.0, 0.0, 0.0);
+        x.posizione = Posizione::Relativa { direzione: Direzione::Destra, riferimento: "g".into(), distanza: 100.0 };
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("a", 10.0, 100.0, 100.0), cerchio("b", 10.0, 200.0, 200.0), gruppo("g", &["a", "b"]), x],
+            vec![],
+        );
+        let s = compila(&p).unwrap();
+        // P = centro di [90, 210] × [90, 210] = (150, 150).
+        assert_eq!((per_nome(&s, "x").1.x, per_nome(&s, "x").1.y), (250.0, 150.0));
+        // Un membro posizionato rispetto al proprio gruppo è un ciclo.
+        let mut a = cerchio("a", 10.0, 0.0, 0.0);
+        a.posizione = Posizione::Relativa { direzione: Direzione::Destra, riferimento: "g".into(), distanza: 10.0 };
+        let p = scena(400.0, 300.0, vec![a, cerchio("b", 10.0, 1.0, 1.0), gruppo("g", &["a", "b"])], vec![]);
+        let e = compila(&p).unwrap_err();
+        assert!(e.messaggio.starts_with("posizioni circolari: \"a\" → \"g\""), "{e}");
+    }
+
+    #[test]
+    fn gruppo_annidato_ruotato_e_scalato() {
+        let mut g = gruppo("g", &["a", "b"]);
+        g.stile.rotazione = 90.0;
+        let mut esterno = gruppo("e", &["g", "c"]);
+        esterno.stile.scala = 2.0;
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("a", 10.0, 100.0, 100.0), cerchio("b", 10.0, 130.0, 100.0), g, cerchio("c", 10.0, 300.0, 100.0), esterno],
+            vec![],
+        );
+        let s = compila(&p).unwrap();
+        // g: AABB [90, 140] × [90, 110] → P = (115, 100); ruotato di 90°: ±10 in x, ±25 in y.
+        // e: unione di [105, 125] × [75, 125] e [290, 310] × [90, 110] → P = (207.5, 100).
+        let (ie, e) = per_nome(&s, "e");
+        assert_eq!((e.x, e.y), (207.5, 100.0));
+        let (ig, g) = per_nome(&s, "g");
+        assert_eq!(g.genitore, Some(ie));
+        assert_eq!((g.x, g.y), (115.0 - 207.5, 0.0));
+        let (_, a) = per_nome(&s, "a");
+        assert_eq!(a.genitore, Some(ig));
+        assert_eq!((a.x, a.y), (-15.0, 0.0));
+        let nomi: Vec<&str> = s.attori.iter().map(|a| a.nome.as_str()).collect();
+        assert_eq!(nomi, ["e", "g", "a", "b", "c"]);
+    }
+
+    #[test]
+    fn cambia_colore_e_gruppi() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0)],
+            vec![
+                (0.0, 1.0, vec![("c", Verbo::CambiaColore(Colore::rgb(255, 0, 0)), Easing::Morbido)]),
+                (1.0, 2.0, vec![("c", Verbo::CambiaColore(Colore { r: 0, g: 0, b: 255, a: 0.5 }), Easing::Morbido)]),
+            ],
+        );
+        let s = compila(&p).unwrap();
+        let v: Vec<Valore> = animazione(&s, "c", Canale::Colore).keyframe.iter().map(|k| k.valore).collect();
+        assert_eq!(
+            v,
+            [
+                Valore::Colore(Colore::BIANCO),
+                Valore::Colore(Colore::rgb(255, 0, 0)),
+                Valore::Colore(Colore { r: 0, g: 0, b: 255, a: 0.5 }),
+            ]
+        );
+        // Sovrapposizione sul canale colore.
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0)],
+            vec![
+                (0.0, 2.0, vec![("c", Verbo::CambiaColore(Colore::BIANCO), Easing::Morbido)]),
+                (1.0, 3.0, vec![("c", Verbo::CambiaColore(Colore::BIANCO), Easing::Morbido)]),
+            ],
+        );
+        assert!(compila(&p).unwrap_err().messaggio.contains("cambiano il colore nello stesso momento"));
+        // Su un gruppo è vietato.
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0), gruppo("g", &["c"])],
+            vec![(0.0, 1.0, vec![("g", Verbo::CambiaColore(Colore::BIANCO), Easing::Morbido)])],
+        );
+        let e = compila(&p).unwrap_err();
+        assert_eq!(e.messaggio, "\"g\" è un gruppo e non ha un colore da cambiare");
+        assert_eq!(e.suggerimento.as_deref(), Some("cambia il colore dei singoli membri"));
+    }
+
+    fn keyframe_totali(s: &ScenaCompilata) -> usize {
+        s.attori.iter().flat_map(|a| &a.animazioni).map(|a| a.keyframe.len()).sum()
+    }
+
+    #[test]
+    fn tetto_globale_dei_keyframe() {
+        // Due quarti di giro da 9 campioni: 10 keyframe ciascuno (il campione 0 si fonde con lo
+        // stato iniziale), 20 in tutto.
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0), cerchio("p", 5.0, 300.0, 150.0), cerchio("q", 5.0, 100.0, 150.0)],
+            vec![(
+                0.0,
+                1.0,
+                vec![
+                    ("p", orbita("c", 100.0, 0.25, true), Easing::Lineare),
+                    ("q", orbita("c", 100.0, 0.25, true), Easing::Lineare),
+                ],
+            )],
+        );
+        let s = compila_con_tetto(&p, 19).map(|_| ()).unwrap_err();
+        assert_eq!(s.messaggio, "animazione troppo complessa: più di 19 fotogrammi chiave in totale");
+        assert_eq!(
+            s.suggerimento.as_deref(),
+            Some("riduci il numero di attori animati, i giri delle orbite o il ritmo delle pulsazioni")
+        );
+        let s = compila_con_tetto(&p, 20).unwrap();
+        assert_eq!(keyframe_totali(&s), 20);
+    }
+
+    #[test]
+    fn esempi_molto_sotto_il_tetto_globale() {
+        for sorgente in [
+            include_str!("../../examples/primo_test.joy"),
+            include_str!("../../examples/livello1_motion.joy"),
+            include_str!("../../examples/stato_iniziale.joy"),
+        ] {
+            let s = compila(&analizza(sorgente).unwrap()).unwrap();
+            assert!(keyframe_totali(&s) < limiti::MAX_KEYFRAME_TOTALI / 100, "{}", keyframe_totali(&s));
+        }
+    }
+
+    #[test]
+    fn orbita_fuori_dai_limiti() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 900_000.0, 150.0), cerchio("p", 5.0, 900_000.0, 350_000.0)],
+            vec![(0.0, 1.0, vec![("p", orbita("c", 200_000.0, 1.0, false), Easing::Lineare)])],
+        );
+        let e = compila(&p).unwrap_err();
+        assert_eq!(e.messaggio, "coordinate fuori dai limiti (massimo ±1000000 pixel)");
+        assert_eq!(e.riga, Some(5));
+    }
+
+    #[test]
+    fn azioni_ammesse_su_un_gruppo() {
+        let p = scena(
+            400.0,
+            300.0,
+            vec![cerchio("c", 10.0, 200.0, 150.0), gruppo("g", &["c"])],
+            vec![(
+                0.0,
+                1.0,
+                vec![
+                    ("g", Verbo::AppareSfumando, Easing::Morbido),
+                    ("g", Verbo::Ruota(90.0), Easing::Morbido),
+                    ("g", Verbo::SiSpostaA { x: 100.0, y: 100.0 }, Easing::Morbido),
+                    ("g", Verbo::ScalaFinoA(2.0), Easing::Morbido),
+                ],
+            )],
+        );
+        let s = compila(&p).unwrap();
+        let (_, g) = per_nome(&s, "g");
+        assert_eq!(g.opacita_iniziale, 0.0);
+        assert_eq!(g.animazioni.len(), 4);
+        assert_eq!(traslazioni(&s, "g").last(), Some(&(-100.0, -50.0)));
+        // Nessun avviso: la rotazione è sul gruppo, non sul cerchio.
+        assert!(s.avvisi.is_empty());
     }
 
     #[test]
