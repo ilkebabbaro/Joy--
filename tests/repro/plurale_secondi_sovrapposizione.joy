@@ -1,0 +1,8 @@
+# atteso: errore riga 8
+# Regressione: il suggerimento della sovrapposizione diceva «Poi per 1 secondi:» (plurale errato).
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "a".
+Dal secondo 0 al secondo 2:
+  "a" si sposta a 1, 1.
+Dal secondo 1 al secondo 3:
+  "a" scivola verso alto di 5.

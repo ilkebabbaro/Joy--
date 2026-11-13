@@ -1,0 +1,6 @@
+# atteso: ok
+# B.6: avviso (non errore) per un cerchio ruotato: la compilazione deve riuscire.
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "c" con rotazione 30.
+Dal secondo 0 al secondo 1:
+  "c" ruota di 90 gradi.

@@ -1,0 +1,4 @@
+# atteso: errore riga 4
+# Regressione: con un solo attore ("a") il riferimento sconosciuto "b" suggeriva «forse intendevi "a"?», cioè se stesso.
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "a" a destra di "b" di 10.

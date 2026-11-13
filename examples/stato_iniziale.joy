@@ -1,0 +1,14 @@
+# Stato iniziale (v0.2): scala e rotazione dichiarate alla creazione.
+# Le stelle sono quadrati ruotati di 45 gradi che "sbocciano" da scala 0.
+Prepara un palco grande 800 per 400 con sfondo #0B1020 a 60 fotogrammi.
+
+Crea un titolo chiamato "titolo" con testo "SBOCCIARE", grandezza 40, colore bianco e rotazione -6 gradi in alto.
+Crea un quadrato chiamato "stella1" con lato 40, colore #FBBF24, scala 0 e rotazione 45 a 250, 220.
+Crea un quadrato chiamato "stella2" con lato 40, colore #F472B6, scala 0 e rotazione 45 al centro.
+Crea un quadrato chiamato "stella3" con lato 40, colore #38BDF8, scala 0 e rotazione 45 a 550, 220.
+
+Dal secondo 0 al secondo 1:
+  "stella1" si ingrandisce fino a 1.5 con movimento elastico.
+Poi per 1 secondo:
+  "stella2" si ingrandisce fino a 2 con movimento elastico.
+  "stella3" si ingrandisce fino a 1.5 e ruota di 90 gradi.

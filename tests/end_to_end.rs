@@ -139,3 +139,72 @@ fn cli_argomenti_non_validi() {
     assert!(String::from_utf8_lossy(&versione.stdout).contains(env!("CARGO_PKG_VERSION")));
     assert!(!joypp(&[Path::new("non_esiste.joy").to_str().unwrap()]).status.success());
 }
+
+#[test]
+fn cli_con_avviso_esce_0_avviso_su_stderr() {
+    let dir = cartella_temporanea("cli-avviso");
+    let sorgente = dir.join("cerchio.joy");
+    let uscita = dir.join("o.html");
+    fs::write(&sorgente, "Prepara un palco grande 100 per 100.\nCrea un cerchio chiamato \"c\" con rotazione 30.\n").unwrap();
+    let out = joypp(&[sorgente.to_str().unwrap(), "-o", uscita.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0));
+    let (stdout, stderr) = (String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    assert!(stderr.contains("Avviso alla riga 2: \"c\" è un cerchio: la rotazione non cambia il suo aspetto"), "{stderr}");
+    assert!(stderr.contains("  Suggerimento: togli «rotazione …» dalla creazione del cerchio"), "{stderr}");
+    assert!(!stdout.contains("Avviso"), "{stdout}");
+    assert!(stdout.contains('✔'), "{stdout}");
+    assert!(fs::read_to_string(&uscita).unwrap().starts_with("<!DOCTYPE html>"));
+    fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn cli_senza_avvisi_stderr_vuoto() {
+    let dir = cartella_temporanea("cli-senza-avvisi");
+    let esempio = radice().join("examples/primo_test.joy");
+    let out = joypp(&[esempio.to_str().unwrap(), "-o", dir.join("o.html").to_str().unwrap()]);
+    assert!(out.status.success());
+    assert!(out.stderr.is_empty(), "{}", String::from_utf8_lossy(&out.stderr));
+    fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn cli_con_errore_non_stampa_avvisi() {
+    let dir = cartella_temporanea("cli-errore-e-avviso");
+    let sorgente = dir.join("s.joy");
+    // L'avviso (riga 2) sarebbe rilevabile, ma l'errore alla riga 3 blocca la compilazione.
+    fs::write(
+        &sorgente,
+        "Prepara un palco grande 100 per 100.\nCrea un cerchio chiamato \"c\" con rotazione 30.\nCrea un cerchio chiamato \"c\".\n",
+    )
+    .unwrap();
+    let uscita = dir.join("o.html");
+    let out = joypp(&[sorgente.to_str().unwrap(), "-o", uscita.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("Errore alla riga 3"), "{stderr}");
+    assert!(!stderr.contains("Avviso"), "{stderr}");
+    assert!(!uscita.exists());
+    fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn esempio_stato_iniziale_senza_avvisi() {
+    let src = fs::read_to_string(radice().join("examples/stato_iniziale.joy")).unwrap();
+    let c = joypp::exporter::compila_con_avvisi(&src, &Opzioni::default()).unwrap();
+    assert!(c.avvisi.is_empty(), "{:?}", c.avvisi);
+    assert!(c.html.contains(";rotate:45deg") && c.html.contains(";scale:0"));
+}
+
+#[test]
+fn repro_suggerimento_non_e_se_stesso() {
+    let src = fs::read_to_string(radice().join("tests/repro/suggerimento_se_stesso.joy")).unwrap();
+    let e = compila_sorgente(&src, &Opzioni::default()).expect_err("doveva fallire");
+    assert_ne!(e.suggerimento.as_deref(), Some("forse intendevi \"a\"?"), "{e}");
+}
+
+#[test]
+fn repro_nessun_errore_con_1_secondi() {
+    let src = fs::read_to_string(radice().join("tests/repro/plurale_secondi_sovrapposizione.joy")).unwrap();
+    let e = compila_sorgente(&src, &Opzioni::default()).expect_err("doveva fallire");
+    assert!(!e.to_string().contains("1 secondi"), "{e}");
+}
