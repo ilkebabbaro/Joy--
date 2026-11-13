@@ -45,7 +45,13 @@ Trasforma il `Programma` (AST) in una `ScenaCompilata`: una rappresentazione gi�
    (stessa riga + stesso messaggio = uno solo). Il compilatore non li stampa: lo fa
    `@exporter` su stderr. Avvisi attuali: «rotazione invisibile su un cerchio», per
    `ruota di` su un `cerchio` (riga dell'azione) e per `rotazione` ≠ 0 alla creazione di un
-   `cerchio` (riga di `Crea`).
+   `cerchio` (riga di `Crea`); «opacità invariata» (v0.2.1), per un'azione di opacità il cui
+   arrivo è uguale (|Δ| < 1e-9, `TOLLERANZA_OPACITA`) al valore corrente all'inizio del
+   segmento. Quest'ultimo è rilevato da `controlla_opacita_invariata` nel passo 2 di B.0.5,
+   subito dopo aver fissato l'opacità iniziale del canale (0 se il primo segmento è `appare
+   sfumando`): scorre i segmenti ordinati e non sovrapposti del solo canale `opacita`
+   dell'attore o gruppo, portando avanti il valore di arrivo di ciascuno. I testi sono in
+   `avviso_opacita_invariata`, una variante per verbo.
 8. **Easing** (`easing.rs`): le curve `elastico` e `rimbalzo` sono campionate
    matematicamente e convertite nella funzione CSS `linear(...)`.
 
@@ -93,6 +99,9 @@ sovrascrivono (cosa che invece accadrebbe con un'unica proprietà `transform`).
 * `ruota di G` è **relativo**: porta la rotazione corrente a `corrente + G`.
 * `si ingrandisce` / `si rimpicciolisce fino a F` sono **assoluti**: portano la scala a F.
 * `pulsa` oscilla tra la scala corrente `b` e `b × (1 + 0.25 × intensità)`; con `b = 0` resta a 0.
+* `appare sfumando` (A.3, v0.2.1) porta l'opacità a `stile.opacita` se è > 0, altrimenti a 1
+  (`arrivo_appare`). Vale anche per i gruppi. Il verbo di opacità che ha prodotto un segmento è
+  nel campo `Segmento::opacita` (`AzioneOpacita`: `Appare`, `Scompare`, `Cambia`).
 
 `AttoreCompilato` espone `scala_iniziale` e `rotazione_iniziale`: il generatore li emette
 come `scale` / `rotate` nella regola statica del wrapper `#aN` quando differiscono da 1 e 0,

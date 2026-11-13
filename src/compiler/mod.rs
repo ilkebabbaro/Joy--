@@ -317,14 +317,79 @@ struct Segmento {
     fine: f64,
     effetto: Effetto,
     easing: Easing,
-    /// `true` per `appare sfumando`: se è il primo segmento di opacità, l'attore parte invisibile.
-    appare: bool,
+    /// Verbo di opacità che ha prodotto il segmento (`None` sugli altri canali). Serve alla
+    /// partenza invisibile di `appare sfumando` (A.3) e al testo dell'avviso «opacità
+    /// invariata» (B.6).
+    opacita: Option<AzioneOpacita>,
     riga: usize,
 }
+
+/// Verbo che agisce sul canale `opacita`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AzioneOpacita {
+    /// `appare sfumando`: se è il primo segmento di opacità, l'attore parte invisibile (A.3).
+    Appare,
+    /// `scompare sfumando`.
+    Scompare,
+    /// `cambia opacità a X`.
+    Cambia,
+}
+
+/// Tolleranza dell'avviso «opacità invariata» (SPECIFICA B.6): `|arrivo − corrente| < 1e-9`.
+const TOLLERANZA_OPACITA: f64 = 1e-9;
 
 /// Messaggio dell'avviso «rotazione invisibile su un cerchio» (SPECIFICA B.6).
 fn messaggio_cerchio_ruotato(nome: &str) -> String {
     format!("\"{nome}\" è un cerchio: la rotazione non cambia il suo aspetto")
+}
+
+/// Opacità di arrivo di `appare sfumando` (SPECIFICA A.3, v0.2.1): l'opacità dichiarata se è
+/// maggiore di 0, altrimenti 1.
+fn arrivo_appare(dichiarata: f64) -> f64 {
+    if dichiarata > 0.0 { dichiarata } else { 1.0 }
+}
+
+/// Avviso «opacità invariata» (SPECIFICA B.6) per un'azione di opacità alla riga `riga` che
+/// porta l'attore `nome` al valore `arrivo`, già uguale a quello corrente.
+fn avviso_opacita_invariata(nome: &str, azione: AzioneOpacita, arrivo: f64, riga: usize) -> Avviso {
+    let (messaggio, suggerimento) = match azione {
+        AzioneOpacita::Appare => (
+            format!("\"{nome}\" appare sfumando ma la sua opacità è già {arrivo}: l'azione non cambia nulla"),
+            "togli «appare sfumando», oppure fallo prima scomparire con «scompare sfumando»",
+        ),
+        AzioneOpacita::Scompare => (
+            format!("\"{nome}\" scompare sfumando ma la sua opacità è già {arrivo}: l'azione non cambia nulla"),
+            "togli «scompare sfumando», oppure fallo prima apparire con «appare sfumando»",
+        ),
+        AzioneOpacita::Cambia => (
+            format!(
+                "\"{nome}\" cambia opacità a {arrivo} ma la sua opacità è già {arrivo}: l'azione non cambia nulla"
+            ),
+            "togli «cambia opacità a …», oppure scegli un valore diverso da quello attuale",
+        ),
+    };
+    Avviso::alla_riga(riga, messaggio).con_suggerimento(suggerimento)
+}
+
+/// Controlla i segmenti (ordinati, non sovrapposti) del canale `opacita` dell'attore `nome`,
+/// partendo dall'opacità `iniziale` del canale, e aggiunge ad `avvisi` un avviso «opacità
+/// invariata» (SPECIFICA B.6) per ogni azione il cui arrivo è uguale al valore corrente
+/// all'inizio del segmento.
+fn controlla_opacita_invariata(nome: &str, iniziale: f64, segmenti: &[Segmento], avvisi: &mut Vec<Avviso>) {
+    let mut corrente = iniziale;
+    for s in segmenti {
+        // Tutti i verbi di opacità producono segmenti `Verso`.
+        let Effetto::Verso(v) = s.effetto else {
+            continue;
+        };
+        let arrivo = v[0];
+        if let Some(azione) = s.opacita
+            && (arrivo - corrente).abs() < TOLLERANZA_OPACITA
+        {
+            avvisi.push(avviso_opacita_invariata(nome, azione, arrivo, s.riga));
+        }
+        corrente = arrivo;
+    }
 }
 
 /// Compila un [`Programma`] in una [`ScenaCompilata`].
@@ -407,9 +472,10 @@ fn compila_con_tetto(programma: &Programma, massimo_keyframe: usize) -> Risultat
             let iniziale = match canale {
                 Canale::Opacita => {
                     // A.3: se la prima azione di opacità è `appare sfumando`, si parte invisibili.
-                    if primo.appare {
+                    if primo.opacita == Some(AzioneOpacita::Appare) {
                         opacita_iniziale[i] = 0.0;
                     }
+                    controlla_opacita_invariata(&attore.nome, opacita_iniziale[i], lista, &mut avvisi);
                     [opacita_iniziale[i], 0.0, 0.0, 0.0]
                 }
                 Canale::Rotazione => [attore.stile.rotazione, 0.0, 0.0, 0.0],
@@ -638,33 +704,37 @@ fn costruisci_segmenti(
             let attore = &programma.attori[i];
             let (x0, y0) = posizioni[i];
             let errore = |m: String| Errore::alla_riga(azione.riga, m);
-            let (canale, effetto, appare) = match &azione.verbo {
-                Verbo::EntraDa(lato) => (Canale::Traslazione, Effetto::EntraDa(*lato), false),
-                Verbo::EsceVerso(lato) => (Canale::Traslazione, Effetto::EsceVerso(*lato), false),
+            let (canale, effetto, opacita) = match &azione.verbo {
+                Verbo::EntraDa(lato) => (Canale::Traslazione, Effetto::EntraDa(*lato), None),
+                Verbo::EsceVerso(lato) => (Canale::Traslazione, Effetto::EsceVerso(*lato), None),
                 Verbo::Orbita { .. } => {
-                    (Canale::Traslazione, valida_orbita(programma, indici, albero, i, azione)?, false)
+                    (Canale::Traslazione, valida_orbita(programma, indici, albero, i, azione)?, None)
                 }
                 Verbo::CambiaColore(colore) => {
                     if matches!(attore.forma, Forma::Gruppo { .. }) {
                         return Err(errore(format!("\"{}\" è un gruppo e non ha un colore da cambiare", attore.nome))
                             .con_suggerimento("cambia il colore dei singoli membri"));
                     }
-                    (Canale::Colore, Effetto::Verso(vettore_colore(*colore)), false)
+                    (Canale::Colore, Effetto::Verso(vettore_colore(*colore)), None)
                 }
-                Verbo::AppareSfumando => {
-                    (Canale::Opacita, Effetto::Verso([attore.stile.opacita, 0.0, 0.0, 0.0]), true)
+                Verbo::AppareSfumando => (
+                    Canale::Opacita,
+                    Effetto::Verso([arrivo_appare(attore.stile.opacita), 0.0, 0.0, 0.0]),
+                    Some(AzioneOpacita::Appare),
+                ),
+                Verbo::ScompareSfumando => {
+                    (Canale::Opacita, Effetto::Verso([0.0; 4]), Some(AzioneOpacita::Scompare))
                 }
-                Verbo::ScompareSfumando => (Canale::Opacita, Effetto::Verso([0.0; 4]), false),
                 Verbo::CambiaOpacita(v) => {
                     let v = *v;
                     if !(0.0..=1.0).contains(&v) {
                         return Err(errore("l'opacità deve essere tra 0.0 e 1.0".into()));
                     }
-                    (Canale::Opacita, Effetto::Verso([v, 0.0, 0.0, 0.0]), false)
+                    (Canale::Opacita, Effetto::Verso([v, 0.0, 0.0, 0.0]), Some(AzioneOpacita::Cambia))
                 }
                 Verbo::SiSpostaA { x, y } => {
                     let (x, y) = controlla_coordinate(*x, *y, azione.riga)?;
-                    (Canale::Traslazione, Effetto::Verso([x - x0, y - y0, 0.0, 0.0]), false)
+                    (Canale::Traslazione, Effetto::Verso([x - x0, y - y0, 0.0, 0.0]), None)
                 }
                 Verbo::Scivola { direzione, distanza } => {
                     let (direzione, distanza) = (*direzione, *distanza);
@@ -675,7 +745,7 @@ fn costruisci_segmenti(
                         )));
                     }
                     let (dx, dy) = direzione.vettore();
-                    (Canale::Traslazione, Effetto::Delta([dx * distanza, dy * distanza, 0.0, 0.0]), false)
+                    (Canale::Traslazione, Effetto::Delta([dx * distanza, dy * distanza, 0.0, 0.0]), None)
                 }
                 Verbo::Ruota(gradi) => {
                     let gradi = *gradi;
@@ -690,14 +760,14 @@ fn costruisci_segmenti(
                                 ),
                         );
                     }
-                    (Canale::Rotazione, Effetto::Delta([gradi, 0.0, 0.0, 0.0]), false)
+                    (Canale::Rotazione, Effetto::Delta([gradi, 0.0, 0.0, 0.0]), None)
                 }
                 Verbo::ScalaFinoA(f) => {
                     let f = *f;
                     if f > limiti::MAX_SCALA {
                         return Err(errore(format!("fattore di scala troppo grande (massimo {})", limiti::MAX_SCALA)));
                     }
-                    (Canale::Scala, Effetto::Verso([f, 0.0, 0.0, 0.0]), false)
+                    (Canale::Scala, Effetto::Verso([f, 0.0, 0.0, 0.0]), None)
                 }
                 Verbo::Pulsa { intensita, bpm } => {
                     let (intensita, bpm) = (*intensita, *bpm);
@@ -707,10 +777,10 @@ fn costruisci_segmenti(
                     if intensita > limiti::MAX_INTENSITA {
                         return Err(errore(format!("intensità troppo alta (massimo {})", limiti::MAX_INTENSITA)));
                     }
-                    (Canale::Scala, Effetto::Pulsazione { ampiezza: 0.25 * intensita, bpm }, false)
+                    (Canale::Scala, Effetto::Pulsazione { ampiezza: 0.25 * intensita, bpm }, None)
                 }
             };
-            let segmento = Segmento { inizio, fine, effetto, easing: azione.easing, appare, riga: azione.riga };
+            let segmento = Segmento { inizio, fine, effetto, easing: azione.easing, opacita, riga: azione.riga };
             per_attore[i][canale.indice()].push(segmento);
         }
     }
@@ -1504,5 +1574,146 @@ mod test {
         let e = compila(&p).unwrap_err();
         assert_eq!(e.messaggio, "non esiste nessun attore chiamato \"b\"");
         assert_ne!(e.suggerimento.as_deref(), Some("forse intendevi \"a\"?"));
+    }
+
+    // ------------------------------------------------ v0.2.1: `appare sfumando` e opacità invariata
+
+    /// Valori dei keyframe di opacità dell'attore `nome`.
+    fn opacita(s: &ScenaCompilata, nome: &str) -> Vec<f64> {
+        let (i, _) = per_nome(s, nome);
+        keyframe(s, i, Canale::Opacita)
+            .into_iter()
+            .map(|v| match v {
+                Valore::Opacita(o) => o,
+                altro => panic!("valore inatteso {altro:?}"),
+            })
+            .collect()
+    }
+
+    fn compila_testo(corpo: &str) -> ScenaCompilata {
+        compila(&programma(corpo, |_| {})).unwrap()
+    }
+
+    fn testi_avvisi(s: &ScenaCompilata) -> Vec<String> {
+        s.avvisi.iter().map(ToString::to_string).collect()
+    }
+
+    #[test]
+    fn appare_con_opacita_0_va_a_1_senza_avvisi() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" con opacità 0 al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" appare sfumando.\n",
+        );
+        assert_eq!(opacita(&s, "q"), [0.0, 1.0]);
+        assert_eq!(per_nome(&s, "q").1.opacita_iniziale, 0.0);
+        assert!(s.avvisi.is_empty(), "{:?}", testi_avvisi(&s));
+    }
+
+    #[test]
+    fn appare_con_opacita_parziale_va_al_valore_dichiarato() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" con opacità 0.6 al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" appare sfumando.\n",
+        );
+        assert_eq!(opacita(&s, "q"), [0.0, 0.6]);
+        assert!(s.avvisi.is_empty());
+    }
+
+    #[test]
+    fn doppio_appare_avvisa_sul_secondo() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" con opacità 0.6 al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" appare sfumando.\n\
+             Poi per 1 secondo:\n\
+             \x20 \"q\" appare sfumando e scivola verso destra di 10.\n",
+        );
+        assert_eq!(
+            testi_avvisi(&s),
+            ["Avviso alla riga 6: \"q\" appare sfumando ma la sua opacità è già 0.6: l'azione non cambia nulla\n  \
+              Suggerimento: togli «appare sfumando», oppure fallo prima scomparire con «scompare sfumando»"]
+        );
+    }
+
+    #[test]
+    fn scompare_su_attore_gia_scomparso_avvisa() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" al centro.\n\
+             Crea un quadrato chiamato \"z\" con opacità 0 al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" scompare sfumando.\n\
+             \x20 \"z\" scompare sfumando.\n\
+             Dal secondo 1 al secondo 2:\n\
+             \x20 \"q\" scompare sfumando.\n",
+        );
+        let scompare = |riga: usize, nome: &str| {
+            format!(
+                "Avviso alla riga {riga}: \"{nome}\" scompare sfumando ma la sua opacità è già 0: \
+                 l'azione non cambia nulla\n  \
+                 Suggerimento: togli «scompare sfumando», oppure fallo prima apparire con «appare sfumando»"
+            )
+        };
+        // Il primo `scompare` di "q" (da 1 a 0) è valido; "z" è creato invisibile.
+        assert_eq!(testi_avvisi(&s), [scompare(6, "z"), scompare(8, "q")]);
+    }
+
+    #[test]
+    fn cambia_opacita_al_valore_attuale_avvisa() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" al centro.\n\
+             Crea un quadrato chiamato \"r\" al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" cambia opacità a 1.\n\
+             \x20 \"r\" cambia opacità a 0.5.\n\
+             Dal secondo 1 al secondo 2:\n\
+             \x20 \"r\" cambia opacità a 0.5.\n",
+        );
+        let cambia = |riga: usize, nome: &str, v: &str| {
+            format!(
+                "Avviso alla riga {riga}: \"{nome}\" cambia opacità a {v} ma la sua opacità è già {v}: \
+                 l'azione non cambia nulla\n  \
+                 Suggerimento: togli «cambia opacità a …», oppure scegli un valore diverso da quello attuale"
+            )
+        };
+        assert_eq!(testi_avvisi(&s), [cambia(5, "q", "1"), cambia(8, "r", "0.5")]);
+    }
+
+    #[test]
+    fn appare_dopo_scompare_e_altri_canali_senza_avvisi() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" appare sfumando.\n\
+             Poi per 1 secondo:\n\
+             \x20 \"q\" scompare sfumando.\n\
+             Poi per 1 secondo:\n\
+             \x20 \"q\" appare sfumando e si ingrandisce fino a 1.\n",
+        );
+        assert_eq!(opacita(&s, "q"), [0.0, 1.0, 0.0, 1.0]);
+        assert!(s.avvisi.is_empty(), "{:?}", testi_avvisi(&s));
+    }
+
+    #[test]
+    fn gruppo_con_opacita_0_appare_fino_a_1() {
+        let s = compila_testo(
+            "Crea un quadrato chiamato \"q\" al centro.\n\
+             Crea un gruppo chiamato \"g\" con \"q\" e opacità 0.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"g\" appare sfumando.\n\
+             \x20 \"q\" appare sfumando.\n\
+             Poi per 1 secondo:\n\
+             \x20 \"g\" appare sfumando.\n",
+        );
+        assert_eq!(opacita(&s, "g"), [0.0, 1.0, 1.0]);
+        assert_eq!(per_nome(&s, "g").1.opacita_iniziale, 0.0);
+        // Canali indipendenti: "q" dentro il gruppo invisibile non avvisa; il secondo
+        // `appare` del gruppo sì.
+        assert_eq!(
+            testi_avvisi(&s),
+            ["Avviso alla riga 8: \"g\" appare sfumando ma la sua opacità è già 1: l'azione non cambia nulla\n  \
+              Suggerimento: togli «appare sfumando», oppure fallo prima scomparire con «scompare sfumando»"]
+        );
     }
 }
