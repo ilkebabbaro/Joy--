@@ -22,6 +22,9 @@ Traduce il sorgente `.joy` (italiano naturale) nell'AST definito in `src/ast`.
 ## Errori
 
 Ogni errore è un `crate::errore::Errore` con **numero di riga**, messaggio in italiano e,
-quando possibile, un **suggerimento** (es. parola chiave più simile tramite distanza di
-Levenshtein: `apare` → "forse intendevi `appare`?").
+quando possibile, un **suggerimento** (parola chiave più simile tramite distanza di
+Damerau-Levenshtein, che conta come un solo errore anche lo scambio di due lettere:
+`apare` → "forse intendevi «appare»?", `sloe` → "forse intendevi \"sole\"?").
+`suggerisci` è pubblica perché la usa anche il compilatore per i nomi degli attori; per
+sicurezza ignora le parole più lunghe di 64 caratteri.
 Il parser non usa mai `unwrap()`/`panic!`: qualsiasi input malformato produce un `Errore`.

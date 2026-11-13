@@ -6,39 +6,50 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
-### Sicurezza
-- Il lexer rifiuta i caratteri di controllo (es. sequenze ANSI `ESC`) che verrebbero
-  ristampati nei messaggi d'errore sul terminale.
-- I suggerimenti "forse intendevi" hanno un limite di lunghezza e un pre-filtro, per evitare
-  costi quadratici su input enormi.
-- Nome degli attori limitato a 100 caratteri.
+## [0.1.0] - 2026-11-13
+
+Prima versione (MVP) del compilatore Joy++: `joypp file.joy -o file.html`.
 
 ### Aggiunto
-- CLI `joypp <file.joy> [-o file.html] [--pretty] [--watch]` ed exporter (`src/exporter`):
-  limite di dimensione del sorgente, controllo UTF-8, protezione contro la sovrascrittura
-  del sorgente, modalità watch senza dipendenze. API di libreria `joypp::compila_sorgente`.
-- Generatore DOM (`src/codegen/dom.rs`): documento HTML5 auto-contenuto con CSS3 `@keyframes`
-  sulle sole proprietà composite (`translate`, `rotate`, `scale`, `opacity`), `will-change`
-  mirato, palco adattato alla finestra e output compatto o leggibile.
-- Compilatore (`src/compiler`): risoluzione iterativa delle posizioni relative con rilevamento
-  dei cicli, ancoraggio dei blocchi relativi, canali di animazione indipendenti
-  (opacità, traslazione, rotazione, scala) con rilevamento delle sovrapposizioni,
-  keyframe pre-calcolati (inclusa l'espansione di `pulsa`) e curve `elastico`/`rimbalzo`
-  campionate in `linear(...)`.
-- Sicurezza (`src/security`): `escape_html`, `valida_nome_font` e limiti anti-DoS
-  (dimensione sorgente, palco, attori, durata, keyframe, testi).
-- Parser (`src/parser`): lexer con normalizzazione di accenti ed elisioni e rimozione
-  degli articoli; frasi `Prepara un palco...`, `Crea [cerchio|rettangolo|quadrato|testo|titolo]...`
-  con proprietà (`raggio`, `larghezza`, `altezza`, `lato`, `arrotondamento`, `testo`, `grandezza`,
-  `font`, `peso`, `colore`, `opacità`, `livello`, `bordo`) e posizioni (assolute, ancore del palco,
-  relative a un altro attore); blocchi `Dal secondo...`, `Al secondo...`, `Poi per...`, `Dopo...`;
-  verbi `appare sfumando`, `scompare sfumando`, `cambia opacità a`, `si sposta a`, `scivola verso`,
-  `ruota di`, `si ingrandisce/rimpicciolisce fino a`, `pulsa`; modificatore `con movimento`.
-- Errori in italiano con numero di riga e suggerimenti ("forse intendevi «appare»?").
-- `SPECIFICA.md`: Appendice A con i valori predefiniti della v0.1.
-- AST (`src/ast`): `Programma`, `Palco`, `Attore` (cerchio, rettangolo/quadrato, testo/titolo),
-  `Posizione`, `Timeline`, `Blocco`, `Azione`, `Verbo`, `Easing`; errore unico `Errore`
-  con riga e suggerimento (`src/errore.rs`).
-- Struttura iniziale del progetto Rust `joypp` (libreria + binario), repository Git
-  e alberatura dei moduli (`parser`, `ast`, `compiler`, `codegen`, `security`, `exporter`)
-  con relativi `README.md`.
+- **Progetto**: crate Rust `joypp` (libreria + binario) senza dipendenze esterne, con moduli
+  `parser`, `ast`, `compiler`, `codegen`, `security` ed `exporter`, ciascuno con il proprio `README.md`.
+- **Linguaggio** (vedi `SPECIFICA.md`, inclusa l'Appendice A con i valori predefiniti):
+  - palco: `Prepara un palco grande L per H [con sfondo COLORE] [a N fotogrammi].`;
+  - attori: `cerchio`, `rettangolo`, `quadrato`, `testo`, `titolo` con le proprietà `raggio`,
+    `larghezza`, `altezza`, `lato`, `arrotondamento`, `testo`, `grandezza`, `font`, `peso`,
+    `colore`, `opacità`, `livello`, `bordo`;
+  - colori: nomi italiani, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, `rgb(R, G, B)`;
+  - posizioni: `a X, Y`, ancore del palco (`al centro`, `in alto a sinistra`, ...) e relative
+    (`a destra di "sole" di 200`, `sopra a`, `sotto a`, `a sinistra di`);
+  - blocchi: `Dal secondo A al secondo B:`, `Al secondo T:`, `Poi per D secondi:`,
+    `Dopo A secondi per D secondi:`;
+  - verbi: `appare sfumando`, `scompare sfumando`, `cambia opacità a`, `si sposta a`,
+    `scivola verso`, `ruota di`, `si ingrandisce fino a`, `si rimpicciolisce fino a`, `pulsa`;
+  - modificatore `con movimento lineare|morbido|scatto|elastico|rimbalzo` e aggettivi
+    semantici di intensità e ritmo.
+- **Parser**: articoli scartati, accenti ed elisioni normalizzati, virgolette tipografiche;
+  errori in italiano con numero di riga e suggerimenti ("forse intendevi «appare»?").
+- **Compilatore**: risoluzione iterativa delle posizioni relative con rilevamento dei cicli,
+  ancoraggio dei blocchi relativi, canali di animazione indipendenti (opacità, traslazione,
+  rotazione, scala) con errore sulle sovrapposizioni, keyframe pre-calcolati (inclusa
+  l'espansione di `pulsa`), curve `elastico`/`rimbalzo` campionate in `linear(...)`.
+- **Generatore DOM**: un singolo HTML5 auto-contenuto; CSS3 `@keyframes` solo su proprietà
+  composite (`translate`, `rotate`, `scale`, `opacity`) per 60/120 FPS; `will-change` mirato;
+  palco adattato alla finestra; output compatto o leggibile (`--pretty`).
+- **CLI**: `joypp <file.joy> [-o file.html] [--pretty] [--watch]`; API `joypp::compila_sorgente`.
+- **Test**: 83 test (unitari, parser, compilatore, sicurezza, end-to-end, CLI) e riproduzioni
+  di regressione in `tests/repro/`.
+
+### Sicurezza
+- Escape HTML di tutti i testi e nomi utente; colori riemessi da valori numerici; id CSS generati;
+  nomi di font validati con una lista di caratteri ammessi.
+- Limiti anti-DoS: dimensione del sorgente (1 MiB), palco, numero di attori, durata della scena,
+  keyframe per animazione, lunghezza di testi e nomi, scala, rotazione, BPM.
+- Rifiuto dei caratteri di controllo (iniezione di sequenze ANSI nei messaggi d'errore).
+- `#![forbid(unsafe_code)]`; `unwrap`, `expect` e `panic` vietati nel codice di produzione.
+- La CLI non sovrascrive il file sorgente se `-o` punta allo stesso file.
+
+### Corretto
+- I suggerimenti usano la distanza di Damerau-Levenshtein: le lettere scambiate (`sloe` → `sole`)
+  ora vengono riconosciute.
+- `SPECIFICA.md`: chiuso il blocco di codice dell'esempio finale, che era rimasto aperto.
