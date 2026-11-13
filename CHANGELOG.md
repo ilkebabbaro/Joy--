@@ -6,6 +6,21 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-13
+
+Patch: `appare sfumando` su un attore con `opacità 0` ora lo rende visibile; nuovo avviso sulle opacità che non cambiano nulla.
+
+### Corretto
+- `appare sfumando` su un attore o gruppo con `opacità 0` ora porta l'opacità a 1. Prima restava 0 e l'attore non compariva mai (trovato dallo stress test `examples/sfida_hyperframe_20s.joy`).
+
+### Aggiunto
+- Avviso non bloccante «opacità invariata» per `appare`, `scompare` e `cambia opacità` che non cambiano nulla.
+- Esempio `examples/sfida_hyperframe_20s.joy`: stress test di 20 s con gruppi e orbite.
+
+### Modificato
+- SPECIFICA A.3 e B.3.5: nuova destinazione di `appare sfumando` (con opacità 0 dichiarata si arriva a 1).
+- `.gitignore`: i video `*.mp4` generati non vengono tracciati.
+
 ## [0.2.0] - 2026-11-13
 
 Release v0.2: stato iniziale (`scala`, `rotazione`), avvisi non bloccanti, gruppi annidati, `entra da` / `esce verso`, `orbita`, `cambia colore`, mini-player nell'HTML ed esportazione video MP4 con `joypp render`.
