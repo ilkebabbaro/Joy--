@@ -13,7 +13,7 @@
 //! (`translate`, `rotate`, `scale`, `opacity`): niente reflow, accelerazione GPU.
 
 use crate::ast::{Colore, Forma};
-use crate::codegen::{OpzioniHtml, numero};
+use crate::codegen::{OpzioniHtml, numero, player};
 use crate::compiler::easing::Curva;
 use crate::compiler::{Animazione, AttoreCompilato, Bersaglio, ScenaCompilata, Valore};
 use crate::security::escape_html;
@@ -43,7 +43,8 @@ impl Emettitore {
 /// `opzioni.leggibile = true` produce output indentato; altrimenti l'output è compatto.
 /// `opzioni.player` abilita il mini-player (B.5).
 pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String {
-    // FASE 2: @renderer — `opzioni.player` è per ora ignorato.
+    // Il player (B.5) non si emette con durata 0: non c'è nulla da riprodurre.
+    let con_player = opzioni.player && scena.durata > 0.0;
     let mut e = Emettitore { out: String::with_capacity(4096), leggibile: opzioni.leggibile };
     let (l, h) = (numero(scena.larghezza), numero(scena.altezza));
 
@@ -68,6 +69,11 @@ pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String {
     e.riga(2, ".attore{position:absolute;width:0;height:0;transform-origin:0 0}");
     e.riga(2, ".forma{position:absolute;left:0;top:0;transform:translate(-50%,-50%)}");
     e.riga(2, ".testo{white-space:pre;line-height:1.2}");
+    if con_player {
+        for regola in player::CSS_PLAYER {
+            e.riga(2, regola);
+        }
+    }
     for attore in &scena.attori {
         stile_attore(&mut e, attore, scena.durata);
     }
@@ -113,13 +119,21 @@ pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String {
         e.riga(1 + aperti.len(), "</div>");
     }
     e.riga(0, "</div>");
-    // Adatta il palco alla finestra senza toccare le coordinate interne della scena.
-    e.riga(
-        0,
-        &format!(
-            "<script>(function(){{var p=document.getElementById(\"palco\");function f(){{var s=Math.min(1,innerWidth/{l},innerHeight/{h});p.style.transform=\"scale(\"+s+\")\"}}addEventListener(\"resize\",f);f()}})();</script>"
-        ),
-    );
+    // Mini-player (B.5): fratello successivo di `#palco`, fuori dal flusso (`position:fixed`).
+    if con_player {
+        let righe = player::righe_markup(scena.durata);
+        let ultima = righe.len().saturating_sub(1);
+        for (i, riga) in righe.iter().enumerate() {
+            e.riga(if i == 0 || i == ultima { 0 } else { 1 }, riga);
+        }
+    }
+    // Unico blocco `<script>`: adattamento del palco alla finestra (senza toccare le
+    // coordinate interne), `window.__joy_seek` (B.9.2, sempre) ed eventuale player.
+    e.riga(0, "<script>");
+    for riga in player::righe_script(scena.larghezza, scena.altezza, scena.durata, con_player) {
+        e.riga(1, &riga);
+    }
+    e.riga(0, "</script>");
     e.riga(0, "</body>");
     e.riga(0, "</html>");
     e.out
@@ -337,6 +351,7 @@ mod tests {
     fn gruppi_annidati_compatto() {
         let h = genera_html(&albero(), &COMPATTO);
         let corpo = h.split("<div id=\"palco\">").nth(1).expect("palco");
+        let corpo = corpo.split("<div id=\"joy-player\"").next().expect("player");
         let corpo = corpo.split("<script>").next().expect("script");
         let f = "<div class=\"forma\"></div>";
         let atteso = format!(
@@ -454,5 +469,102 @@ mod tests {
     fn valori_di_default_non_emettono_nulla() {
         let h = html("Prepara un palco grande 800 per 600 con sfondo nero.\nCrea un quadrato chiamato \"q\" al centro.\n", 1.0, 0.0);
         assert!(!h.contains("scale:") && !h.contains("rotate:"), "{h}");
+    }
+
+    const SENZA_PLAYER: OpzioniHtml = OpzioniHtml { leggibile: false, player: false };
+
+    /// Contenuto del (solo) blocco `<script>`.
+    fn script(h: &str) -> &str {
+        assert_eq!(h.matches("<script>").count(), 1, "{h}");
+        h.split("<script>").nth(1).and_then(|s| s.split("</script>").next()).expect("script")
+    }
+
+    #[test]
+    fn con_player_controlli_e_scorciatoie() {
+        let h = genera_html(&albero(), &COMPATTO);
+        for atteso in [
+            "<div id=\"joy-player\"",
+            "aria-label=\"Pausa\"",
+            "aria-label=\"Ricomincia\"",
+            "aria-label=\"Posizione nel tempo\"",
+            "<input type=\"range\" id=\"joy-sc\" min=\"0\" max=\"2000\" step=\"10\"",
+            "0.0 / 2.0 s",
+            "#joy-player{position:fixed",
+            "html[data-joy-render] #joy-player{display:none!important}",
+            "focus-visible",
+        ] {
+            assert!(h.contains(atteso), "manca {atteso}: {h}");
+        }
+        let s = script(&h);
+        for atteso in ["\"keydown\"", "n===\"TEXTAREA\"||n===\"SELECT\"", "isContentEditable", "\"ArrowLeft\"", "\"ArrowRight\"", "\"r\"", "k===\" \"", "document.getAnimations", "__joy_seek"] {
+            assert!(s.contains(atteso), "manca {atteso}: {s}");
+        }
+        // Il player sta fuori da `#palco`, dopo la sua chiusura.
+        let (palco, resto) = h.split_once("<div id=\"joy-player\"").expect("player");
+        assert!(palco.contains("<div id=\"palco\">") && !resto.contains("id=\"a0\""), "{h}");
+    }
+
+    #[test]
+    fn senza_player_solo_joy_seek() {
+        let h = genera_html(&albero(), &SENZA_PLAYER);
+        assert!(!h.contains("joy-player") && !h.contains("joy-pp") && !h.contains("keydown"), "{h}");
+        let s = script(&h);
+        assert!(s.contains("Object.defineProperty(window,\"__joy_seek\""), "{s}");
+        assert!(s.contains("var W=800,H=600,D=2000;"), "{s}");
+        assert!(s.contains("hasAttribute(\"data-joy-render\"))return;"), "{s}");
+    }
+
+    #[test]
+    fn durata_zero_niente_player_ma_joy_seek() {
+        let mut sc = albero();
+        sc.durata = 0.0;
+        let h = genera_html(&sc, &COMPATTO);
+        assert!(!h.contains("joy-player"), "{h}");
+        assert!(script(&h).contains("D=0;"), "{h}");
+    }
+
+    #[test]
+    fn nessun_nome_utente_nello_script_ne_nel_css_del_player() {
+        let mut sc = albero();
+        sc.attori[1].nome = "</script><script>alert(1)//ZZZ".into();
+        for opz in [COMPATTO, LEGGIBILE, SENZA_PLAYER] {
+            let h = genera_html(&sc, &opz);
+            assert!(!h.contains("ZZZ</"), "{h}");
+            assert!(!script(&h).contains("alert") && !script(&h).contains("ZZZ"), "{h}");
+            assert_eq!(h.matches("<script>").count(), 1, "{h}");
+        }
+    }
+
+    #[test]
+    fn durata_frazionaria_e_formato_leggibile() {
+        let mut sc = albero();
+        sc.durata = 8.5;
+        let h = genera_html(&sc, &LEGGIBILE);
+        assert!(h.contains("D=8500;"), "{h}");
+        assert!(h.contains("max=\"8500\"") && h.contains("0.0 / 8.5 s"), "{h}");
+        assert!(h.contains("\n<script>\n  (function(){\n"), "{h}");
+        let c = genera_html(&sc, &COMPATTO);
+        assert!(!script(&c).contains('\n'), "{c}");
+    }
+
+    #[test]
+    fn joy_seek_segue_la_specifica() {
+        let h = genera_html(&albero(), &SENZA_PLAYER);
+        let s = script(&h);
+        for atteso in [
+            "typeof ms!==\"number\"||!isFinite(ms)",
+            "Promise.reject(new TypeError(\"__joy_seek: ms deve essere un numero finito\"))",
+            "Math.min(Math.max(ms,0),D)||0",
+            "document.fonts.ready",
+            "p.getAnimations({subtree:true})",
+            "x.pause();x.currentTime=t",
+            "x.ready",
+            "requestAnimationFrame(function(){requestAnimationFrame(function(){r(t)})})",
+            "p.style.transform=\"none\"",
+            "q=r.catch(function(){})",
+        ] {
+            assert!(s.contains(atteso), "manca {atteso}: {s}");
+        }
+        assert!(!s.contains("eval") && !s.contains("innerHTML") && !s.contains("Function("), "{s}");
     }
 }

@@ -4,6 +4,7 @@
 //! verranno aggiunti con linee, tracciati e sistemi particellari.
 
 pub mod dom;
+mod player;
 
 pub use dom::genera_html;
 

@@ -13,8 +13,32 @@ dalla `ScenaCompilata`.
 
 `pub fn genera_html(scena: &ScenaCompilata, opzioni: &OpzioniHtml) -> String`, con
 `OpzioniHtml { leggibile: bool, player: bool }` (definita in `mod.rs`; `Default`:
-`leggibile: false`, `player: true`). `player` abilita il mini-player (B.5): per ora
-è ignorato (FASE 2: `@renderer`).
+`leggibile: false`, `player: true`). `player` abilita il mini-player (B.5); con durata 0
+il player non viene mai emesso.
+
+## Script inline, `__joy_seek` e mini-player (v0.2 blocco 2C, `player.rs`)
+
+- Un **solo** `<script>` (IIFE) dopo `#palco` e dopo il markup del player. Contiene, in ordine:
+  adattamento del palco alla finestra, `window.__joy_seek` (sempre, anche con
+  `--senza-player` e durata 0) e, se `opzioni.player`, il mini-player.
+- Gli unici valori variabili sono numeri: `W`, `H`, `D` (durata in ms, `numero(durata*1000)`) e
+  l'attributo `max` dello scrubber. Il resto è testo costante (`JS_BASE`, `JS_PLAYER`,
+  `CSS_PLAYER`): nessuna stringa utente, nessun `eval`/`innerHTML`.
+- Ogni riga di JS è un'istruzione completa: compatto = righe concatenate, `--pretty` = indentate.
+- **`__joy_seek(ms)`** (B.9.2): `Promise<number>`, `Object.defineProperty` non riscrivibile;
+  valida `ms` (numero finito, altrimenti `TypeError`), clamp a `[0, D]`, coda serializzata,
+  alla prima chiamata imposta `data-joy-render` su `<html>` e `#palco.style.transform="none"`,
+  attende `document.fonts.ready`, mette in pausa `getAnimations({subtree:true})` con
+  `currentTime=t`, attende `ready` e un doppio `requestAnimationFrame`; risolve con `t`.
+- `data-joy-render`: la funzione di adattamento esce subito se presente (nessuna riscalatura al
+  `resize`); il CSS `html[data-joy-render] #joy-player{display:none!important}` nasconde il
+  player, e tutti i suoi gestori (puntatore, tocco, focus, tastiera, ciclo rAF, play/pausa/replay)
+  non fanno nulla.
+- **Mini-player** (B.5): `#joy-player` (`position:fixed`, fratello di `#palco`), pulsanti
+  `<button>` con `aria-label` italiani, scrubber `range` (step 10), etichetta tempo; a scomparsa
+  (2,5 s), scorciatoie Spazio/R/←/→ ignorate su `button`/`input`; Web Animations API
+  (`document.getAnimations()` filtrate su `#palco`). Senza `document.getAnimations` la barra viene
+  rimossa.
 
 ## Regole di performance
 - Si animano **solo** proprietà composite (`translate`, `rotate`, `scale`, `opacity`):
@@ -23,7 +47,7 @@ dalla `ScenaCompilata`.
   (`width:0;height:0;transform-origin:0 0`) con la forma interna centrata: rotazioni e
   scale avvengono attorno al centro dell'attore.
 - `will-change` viene dichiarato solo per i canali effettivamente animati.
-- Un micro-script inline adatta il palco alla finestra (`scale`), senza toccare le animazioni.
+- Uno script inline adatta il palco alla finestra (`scale`), senza toccare le animazioni.
 
 ## Regole di sicurezza
 - Il testo utente passa **sempre** da `security::escape_html`.
