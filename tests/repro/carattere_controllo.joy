@@ -1,0 +1,4 @@
+# atteso: errore riga 4
+# Regressione sec: un carattere ESC (sequenza ANSI) nel nome veniva ristampato sul terminale.
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "a[31m".

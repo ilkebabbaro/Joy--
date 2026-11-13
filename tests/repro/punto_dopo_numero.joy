@@ -1,0 +1,7 @@
+# atteso: ok
+# Il punto finale subito dopo un numero non deve essere letto come decimale ("90." / "1.5.").
+Prepara un palco grande 100 per 100.
+Crea un quadrato chiamato "q" con lato 10.
+Dal secondo 0 al secondo 1:
+  "q" ruota di 90.
+  "q" si ingrandisce fino a 1.5.

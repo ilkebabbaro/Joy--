@@ -1,0 +1,6 @@
+# atteso: ok
+# "pulsa con movimento X" non deve interpretare "con" come inizio di "con intensità".
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "c".
+Dal secondo 0 al secondo 2:
+  "c" pulsa con movimento lineare.

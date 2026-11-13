@@ -1,0 +1,29 @@
+# Primo test di Joy++ v0.1
+# Compila con: cargo run -- examples/primo_test.joy -o output.html
+
+Prepara un palco grande 1280 per 720 con sfondo #0F172A a 60 fotogrammi.
+
+Crea un cerchio chiamato "sole" con raggio 60 e colore #F59E0B al centro.
+Crea un cerchio chiamato "terra" con raggio 18 e colore #38BDF8 a destra di "sole" di 200.
+Crea un quadrato chiamato "cubo" con lato 60, arrotondamento 12 e colore #A78BFA a sinistra di "sole" di 260.
+Crea un titolo chiamato "testo" con testo "SISTEMA ORBITALE", grandezza 36 e colore bianco in alto.
+Crea un testo chiamato "firma" con testo "Joy++ v0.1 — <animazioni in italiano>", grandezza 18, colore grigio e opacità 0.8 in basso.
+
+Dal secondo 0 al secondo 1:
+  "testo" appare sfumando e scivola verso basso di 40 con movimento morbido.
+  "firma" appare sfumando.
+
+Dal secondo 0 al secondo 6:
+  "sole" pulsa leggermente a ritmo lentamente.
+
+Dal secondo 1 al secondo 3:
+  "terra" si sposta a 640, 160 con movimento scatto.
+  "cubo" ruota di 180 gradi e si ingrandisce fino a 1.5 con movimento elastico.
+
+Poi per 2 secondi:
+  "terra" si sposta a 440, 360 con movimento rimbalzo.
+  "cubo" ruota di -180 gradi e si rimpicciolisce fino a 1.
+
+Dal secondo 5 al secondo 6:
+  "testo" scompare sfumando.
+  "terra" si sposta a 840, 360 con movimento lineare.
