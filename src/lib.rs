@@ -12,5 +12,6 @@
 pub mod ast;
 pub mod errore;
 pub mod parser;
+pub mod security;
 
 pub use errore::{Errore, Risultato};

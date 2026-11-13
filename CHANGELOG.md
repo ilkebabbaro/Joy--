@@ -7,6 +7,8 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 ## [Unreleased]
 
 ### Aggiunto
+- Sicurezza (`src/security`): `escape_html`, `valida_nome_font` e limiti anti-DoS
+  (dimensione sorgente, palco, attori, durata, keyframe, testi).
 - Parser (`src/parser`): lexer con normalizzazione di accenti ed elisioni e rimozione
   degli articoli; frasi `Prepara un palco...`, `Crea [cerchio|rettangolo|quadrato|testo|titolo]...`
   con proprietà (`raggio`, `larghezza`, `altezza`, `lato`, `arrotondamento`, `testo`, `grandezza`,
