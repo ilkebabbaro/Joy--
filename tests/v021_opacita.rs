@@ -380,5 +380,6 @@ fn nessun_avviso_su_tutti_gli_esempi() {
             trovati += 1;
         }
     }
-    assert_eq!(trovati, 5, "attesi 5 esempi in examples/");
+    // Minimo (non conteggio esatto): garantisce che gli esempi siano stati davvero compilati senza rompersi a ogni nuovo esempio.
+    assert!(trovati >= 7, "attesi almeno 7 esempi in examples/, trovati {trovati}");
 }
