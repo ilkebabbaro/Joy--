@@ -73,12 +73,16 @@ fn e_apostrofo(c: char) -> bool {
 ///
 /// `riga` è il numero di riga usato nei messaggi d'errore.
 pub fn tokenizza(testo: &str, riga: usize) -> Risultato<Vec<Token>> {
-    // Sicurezza: i caratteri di controllo (es. ESC) verrebbero ristampati nei messaggi
-    // d'errore e potrebbero manipolare il terminale. Si rifiutano subito, mostrandone il codice.
-    if let Some(c) = testo.chars().find(|c| c.is_control() && *c != '\t') {
+    // Sicurezza: i caratteri di controllo (es. ESC) e quelli invisibili/bidirezionali
+    // ("Trojan Source") verrebbero ristampati nei messaggi d'errore e potrebbero manipolare
+    // il terminale o falsare le righe mostrate. Si rifiutano subito, mostrandone solo il codice.
+    if let Some(c) = testo.chars().find(|c| crate::security::carattere_non_ammesso(*c)) {
         return Err(Errore::alla_riga(
             riga,
-            format!("carattere di controllo non ammesso ({})", c.escape_unicode()),
+            format!(
+                "carattere invisibile o di controllo non ammesso ({})",
+                c.escape_unicode()
+            ),
         )
         .con_suggerimento("rimuovi il carattere invisibile dalla riga"));
     }
@@ -203,6 +207,14 @@ mod test {
                 Token::Numero(0.5),
             ]
         );
+    }
+
+    #[test]
+    fn rifiuta_caratteri_bidirezionali() {
+        let e = tokenizza("Crea un cerchio chiamato \"a\u{202e}b\"", 3).unwrap_err();
+        let msg = e.to_string();
+        assert!(!msg.contains('\u{202e}'));
+        assert!(msg.contains("202e"));
     }
 
     #[test]

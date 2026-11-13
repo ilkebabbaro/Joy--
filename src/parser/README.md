@@ -28,3 +28,11 @@ Damerau-Levenshtein, che conta come un solo errore anche lo scambio di due lette
 `suggerisci` è pubblica perché la usa anche il compilatore per i nomi degli attori; per
 sicurezza ignora le parole più lunghe di 64 caratteri.
 Il parser non usa mai `unwrap()`/`panic!`: qualsiasi input malformato produce un `Errore`.
+
+## Proprietà di stile di `Crea` (v0.2)
+
+- `scala N` imposta `stile.scala`; `rotazione GRADI [gradi|grado]` imposta `stile.rotazione`.
+- Valgono per ogni tipo di attore. Se il numero manca l'errore è «mi aspettavo un numero dopo «scala»» (o «rotazione»), prodotto da `numero_dopo`.
+- I limiti sui valori sono validati dal compilatore, non dal parser.
+
+- Il lexer rifiuta i caratteri invisibili/bidirezionali ("Trojan Source") tramite `security::carattere_non_ammesso`, mostrando solo il codice escape (es. `\u{202e}`).

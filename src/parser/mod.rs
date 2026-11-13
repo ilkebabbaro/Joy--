@@ -66,7 +66,7 @@ const VERBI_FUTURI: &[&str] = &[
 ];
 const PROPRIETA: &[&str] = &[
     "raggio", "larghezza", "altezza", "lato", "arrotondamento", "testo", "grandezza", "font",
-    "peso", "colore", "opacita", "livello", "bordo",
+    "peso", "colore", "opacita", "livello", "bordo", "scala", "rotazione",
 ];
 
 /// Analizza un sorgente Joy++ completo e restituisce l'AST.
@@ -332,6 +332,20 @@ impl<'a> Frase<'a> {
         }
     }
 
+    /// Legge un numero per una proprietà di stile; se manca, l'errore è
+    /// «mi aspettavo un numero dopo «proprieta»».
+    fn numero_dopo(&mut self, proprieta: &str) -> Risultato<f64> {
+        match self.peek() {
+            Some(Token::Numero(n)) => {
+                self.pos += 1;
+                Ok(*n)
+            }
+            _ => Err(self
+                .errore(format!("mi aspettavo un numero dopo «{proprieta}»"))
+                .con_suggerimento(format!("scrivi ad esempio «{proprieta} 1»"))),
+        }
+    }
+
     fn stringa(&mut self, cosa: &str) -> Risultato<String> {
         match self.peek() {
             Some(Token::Stringa(s)) => {
@@ -562,6 +576,11 @@ impl<'a> Frase<'a> {
                 }
                 "colore" => stile.colore = self.colore()?,
                 "opacita" => stile.opacita = self.numero("l'opacità")?,
+                "scala" => stile.scala = self.numero_dopo("scala")?,
+                "rotazione" => {
+                    stile.rotazione = self.numero_dopo("rotazione")?;
+                    self.accetta_una(&["gradi", "grado"]);
+                }
                 "livello" => {
                     let n = self.numero("il livello")?;
                     if n.fract() != 0.0 || n.abs() > 1_000_000.0 {
@@ -718,7 +737,7 @@ impl<'a> Frase<'a> {
                     return Err(self.errore("l'attesa non può essere negativa"));
                 }
                 self.accetta_una(&["secondi", "secondo"]);
-                self.richiedi("per", "dopo l'attesa (es. «Dopo 1 secondi per 2 secondi:»)")?;
+                self.richiedi("per", "dopo l'attesa (es. «Dopo 1 secondo per 2 secondi:»)")?;
                 let durata = self.durata("la durata")?;
                 Tempo::Relativo { attesa, durata }
             }
@@ -731,7 +750,7 @@ impl<'a> Frase<'a> {
             _ => {
                 return Err(self
                     .errore(format!("intestazione di blocco non riconosciuta: inizia con {}", self.trovato()))
-                    .con_suggerimento("usa «Dal secondo 0 al secondo 2:», «Al secondo 3:», «Poi per 2 secondi:» o «Dopo 1 secondi per 2 secondi:»"));
+                    .con_suggerimento("usa «Dal secondo 0 al secondo 2:», «Al secondo 3:», «Poi per 2 secondi:» o «Dopo 1 secondo per 2 secondi:»"));
             }
         };
         self.termina()?;
