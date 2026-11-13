@@ -1335,18 +1335,33 @@ fn regressione_esempi_v01_senza_funzioni_v02_blocco_2b() {
     }
 }
 
-/// (nome esempio, lunghezza in byte, hash FNV-1a) dell'HTML compatto prodotto prima del blocco 2B.
+/// (nome esempio, lunghezza in byte, hash FNV-1a) della parte dell'HTML compatto che precede
+/// `<script>` (head, CSS, `#palco` e attori), prodotta con `--senza-player` dal compilatore
+/// del commit d67175c (prima del blocco 2C) e identica a quella della v0.1 / blocco 2B.
+///
+/// Dal blocco 2C l'HTML completo non è più identico a quello della v0.1: lo script contiene
+/// sempre `__joy_seek` (B.9.2) e, di default, il documento include il mini-player (B.5).
+/// La regressione si restringe quindi alla parte che 2C non deve toccare. I riferimenti
+/// sono stati ricavati compilando gli esempi con il binario di d67175c in una copia
+/// temporanea fuori dal repository.
 const ATTESI: [(&str, usize, u64); 3] = [
-    ("primo_test", 4731, 14_333_722_551_016_717_879),
-    ("livello1_motion", 19506, 2_973_971_088_806_818_561),
-    ("stato_iniziale", 2851, 5_044_774_629_804_226_942),
+    ("primo_test", 4516, 18_401_684_762_150_092_797),
+    ("livello1_motion", 19291, 4_295_816_693_622_175_511),
+    ("stato_iniziale", 2637, 9_609_074_493_580_632_402),
 ];
 
 #[test]
 fn regressione_html_degli_esempi_v01_identico_byte_per_byte() {
     for (nome, lunghezza, hash) in ATTESI {
-        let h = esempio(nome);
-        assert_eq!((h.len(), fnv(&h)), (lunghezza, hash), "{nome}: HTML cambiato");
+        let percorso = format!("{}/examples/{nome}.joy", env!("CARGO_MANIFEST_DIR"));
+        let sorgente = std::fs::read_to_string(&percorso).unwrap();
+        let opzioni = Opzioni { senza_player: true, ..Default::default() };
+        let h = compila_sorgente(&sorgente, &opzioni).unwrap();
+        let prima = h.split("<script>").next().unwrap();
+        assert_eq!((prima.len(), fnv(prima)), (lunghezza, hash), "{nome}: head/CSS/palco cambiati");
+        assert!(h.ends_with("</script></body></html>"), "{nome}: chiusura inattesa");
+        // Senza player nessuna traccia del player nel documento.
+        assert!(!h.contains("joy-player"), "{nome}");
     }
 }
 

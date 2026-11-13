@@ -38,7 +38,18 @@ fn nomi_utente_non_diventano_identificatori_css() {
     ));
     // Il nome può comparire solo come valore (escape-ato) di `data-nome`, mai dentro <style>.
     let stile = out.split("<style>").nth(1).and_then(|s| s.split("</style>").next()).unwrap();
-    assert!(!stile.contains("display:none"));
+    // Il CSS del player contiene `display:none!important` (modalità render, B.9.2): quindi si
+    // cerca il payload nella sua forma completa e si verifica che la regola `body{...}` non esista.
+    assert!(!stile.contains("body{display:none"));
+    assert!(!stile.contains("}body{display:none"));
+    // Struttura del CSS identica a quella con un nome innocuo: il payload non ha aggiunto regole.
+    let controllo = html(&format!(
+        "{PALCO}Crea un cerchio chiamato \"x\".\nDal secondo 0 al secondo 1:\n  \"x\" appare sfumando.\n"
+    ));
+    let stile_c = controllo.split("<style>").nth(1).and_then(|s| s.split("</style>").next()).unwrap();
+    assert_eq!(stile.matches('{').count(), stile_c.matches('{').count());
+    assert_eq!(stile.matches('}').count(), stile_c.matches('}').count());
+    assert_eq!(stile, stile_c, "il CSS non dipende dal nome dell'attore");
     assert!(stile.contains("@keyframes a0-opacita"));
 }
 
@@ -212,10 +223,15 @@ fn gruppi_annidati_profondi_html_bilanciato() {
     s.push_str(&format!("Dal secondo 0 al secondo 1:\n  \"{prec}\" entra da sinistra.\n"));
     for opzioni in [Opzioni::default(), Opzioni { leggibile: true, ..Default::default() }] {
         let out = compila_sorgente(&s, &opzioni).unwrap();
+        // Bilanciamento sull'intero documento (comprende il `<div id="joy-player">`).
         let (aperti, chiusi) = conta_div(&out);
         assert_eq!(aperti, chiusi);
-        // #palco + 16 gruppi + il cerchio `.attore` + la sua `.forma`.
-        assert_eq!(aperti, 19);
+        // Dentro `#palco`: #palco + 16 gruppi + il cerchio `.attore` + la sua `.forma`.
+        // Il player (B.5) sta fuori dal palco e aggiunge un solo `<div>`.
+        let palco = out.split("<div id=\"palco\"").nth(1).and_then(|s| s.split("<div id=\"joy-player\"").next()).unwrap();
+        assert_eq!(palco.matches("<div").count() + 1, 19);
+        assert_eq!(palco.matches("</div>").count(), 19);
+        assert_eq!(aperti, 19 + 1, "palco + player");
         assert_eq!(out.matches("class=\"attore gruppo\"").count(), 16);
         assert_eq!(out.matches("class=\"forma\"").count(), 1, "solo il cerchio ha una .forma");
     }
