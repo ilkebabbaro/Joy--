@@ -25,9 +25,12 @@ numero di keyframe per animazione, lunghezza di testi e nomi, scala, rotazione, 
 Dalla v0.2: `MAX_PROFONDITA_GRUPPI = 16` (annidamento dei gruppi; i gruppi contano in
 `MAX_ATTORI`). I campioni di `orbita` sono limitati da `MAX_KEYFRAME` (10000), il raggio da
 `MAX_COORDINATA`; il nome di gruppi e attori in `data-nome` passa da `escape_html`.
-`MAX_KEYFRAME_TOTALI = 200000` è il tetto globale (somma su tutti gli attori) previsto
-dall'audit di sicurezza v0.2-2B: il compilatore deve ancora applicarlo (misurato: 4000 orbite
-da 7200 campioni = 1,3 GB di HTML in 29 s).
+`MAX_KEYFRAME_TOTALI = 200000` è il tetto globale (somma su tutti i canali di attori e gruppi), previsto
+dall'audit di sicurezza v0.2-2B (senza tetto: 4000 orbite da 7200 campioni = 1,3 GB di HTML
+in 29 s). È applicato dal compilatore con `keyframe::Tetto` (`src/compiler/keyframe.rs`): un
+contatore unico, la compilazione si ferma appena il totale supera il limite con un errore
+globale. Inoltre ogni orbita verifica una sola volta che `|centro| + raggio` resti entro
+`MAX_COORDINATA`.
 Anche il calcolo dei suggerimenti "forse intendevi" è limitato, per evitare costi quadratici.
 
 ## Verifica
