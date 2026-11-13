@@ -12,7 +12,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use joypp::Opzioni;
-use joypp::exporter::{compila_file, osserva, output_predefinito};
+use joypp::exporter::{Esito, compila_file, osserva, output_predefinito};
 
 const AIUTO: &str = "\
 Joy++ — compilatore di animazioni in italiano naturale
@@ -76,8 +76,13 @@ fn interpreta(argomenti: impl Iterator<Item = String>) -> Result<Comando, String
     Ok(Comando::Compila(Argomenti { ingresso, uscita, opzioni, osserva }))
 }
 
-fn successo(ingresso: &Path, uscita: &Path, byte: usize) {
-    println!("✔ {} → {} ({byte} byte)", ingresso.display(), uscita.display());
+/// Stampa gli avvisi su stderr (in ordine di riga), poi il messaggio di successo su stdout.
+/// Gli avvisi non cambiano l'exit code (SPECIFICA B.6).
+fn successo(ingresso: &Path, uscita: &Path, esito: &Esito) {
+    for avviso in &esito.avvisi {
+        eprintln!("{avviso}");
+    }
+    println!("✔ {} → {} ({} byte)", ingresso.display(), uscita.display(), esito.byte);
 }
 
 fn main() -> ExitCode {
@@ -106,15 +111,15 @@ fn main() -> ExitCode {
         println!("In osservazione di {} (Ctrl+C per uscire)...", args.ingresso.display());
         osserva(&args.ingresso, &uscita, &args.opzioni, Duration::from_millis(500), |esito| {
             match esito {
-                Ok(byte) => successo(&args.ingresso, &uscita, byte),
+                Ok(esito) => successo(&args.ingresso, &uscita, &esito),
                 Err(e) => eprintln!("{e}"),
             }
         });
     }
 
     match compila_file(&args.ingresso, &uscita, &args.opzioni) {
-        Ok(byte) => {
-            successo(&args.ingresso, &uscita, byte);
+        Ok(esito) => {
+            successo(&args.ingresso, &uscita, &esito);
             ExitCode::SUCCESS
         }
         Err(e) => {
