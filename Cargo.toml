@@ -1,0 +1,20 @@
+[package]
+name = "joypp"
+version = "0.1.0"
+edition = "2024"
+description = "Compilatore Joy++: linguaggio dichiarativo in italiano naturale -> HTML5/CSS3 auto-contenuto"
+
+[lib]
+name = "joypp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "joypp"
+path = "src/main.rs"
+
+# Nessuna dipendenza esterna: il compilatore usa solo la libreria standard.
+[dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1
