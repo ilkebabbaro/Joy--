@@ -92,7 +92,7 @@ Quando affronti un task, **delega** secondo questi 7 ruoli distinti. Ogni agente
 
 Nessun codice può essere considerato "finito" se non attraversa questa pipeline lineare:
 
-1. **Pianificazione & Assegnazione:** Identifica il ruolo corretto (`@parser`, `@compiler`, `@renderer`, ecc.) e dichiara esplicitamente quale ruolo stai assumendo all'inizio della risposta.
+1. **Pianificazione & Assegnazione:** Identifica il ruolo corretto (`@parser`, `@compiler`, `@renderer`, ecc.) e dichiara esplicitamente quale ruolo stai assumendo all'inizio della risposta. Se il task cambia un contratto condiviso, la prima unità di lavoro è il commit preparatorio del contratto (§4).
 2. **Sviluppo & Documentazione Interna:**
    * Scrivi codice Rust idiomatico, commentando con `///` (Rustdoc) ogni `struct`, `enum` e funzione pubblica.
    * Se aggiungi una feature del linguaggio, aggiorna immediatamente `SPECIFICA.md`.
@@ -130,6 +130,8 @@ Nessun codice può essere considerato "finito" se non attraversa questa pipeline
   * `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`
   * `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
   * Esempi: un commit dell'auditor che committa solo lavoro proprio usa Haiku; un commit che contiene una specifica scritta da `@compiler` e documentazione dell'auditor usa Opus e Haiku.
+* **Commit preparatorio dei contratti.** Quando un task cambia contratti condivisi tra ruoli (tipi dell'AST, strutture pubbliche, firme di funzioni usate da più moduli, opzioni CLI condivise), il contratto va committato PRIMA dei commit d'implementazione, in un commit preparatorio che compila da solo (`cargo check --all-targets` verde su quel commit). Il commit contiene anche gli adattamenti minimi necessari negli altri moduli (es. le chiamate aggiornate alla nuova firma, eventuali rami provvisori che restituiscono un `Errore` «non ancora supportato», mai `todo!` o `panic!`). Prefisso: `refactor(<ruolo>)` oppure `feat(<ruolo>)`, con i trailer dei modelli che hanno scritto il contratto. Ogni commit d'implementazione successivo deve compilare. `@auditor` verifica la compilazione di ogni commit con un `git worktree` temporaneo e lo riporta.
+  * Motivazione: nel blocco v0.2 2B i commit `d1a2eb6` e `6f9cd0a` non compilavano da soli, perché il contratto del renderer era finito insieme all'implementazione. La storia è stata lasciata intatta per scelta; la regola vale dai task successivi.
 
 ---
 
