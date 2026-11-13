@@ -9,6 +9,9 @@ use crate::errore::{Avviso, Errore, Risultato};
 use crate::security::limiti;
 use crate::{codegen, compiler, parser};
 
+pub mod cli;
+pub mod render;
+
 /// Opzioni di generazione dell'output.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Opzioni {
@@ -54,6 +57,15 @@ pub struct Esito {
 /// Il primo errore di parsing o di compilazione, oppure un errore se il sorgente
 /// supera [`limiti::MAX_SORGENTE_BYTE`].
 pub fn compila_con_avvisi(sorgente: &str, opzioni: &Opzioni) -> Risultato<Compilazione> {
+    compila_con_sfondo(sorgente, opzioni).map(|(c, _)| c)
+}
+
+/// Come [`compila_con_avvisi`], ma restituisce anche lo sfondo del palco (serve a `render` per
+/// il bordo delle dimensioni dispari, B.9.6). Resta il punto unico della pipeline.
+pub(crate) fn compila_con_sfondo(
+    sorgente: &str,
+    opzioni: &Opzioni,
+) -> Risultato<(Compilazione, crate::ast::Colore)> {
     if sorgente.len() as u64 > limiti::MAX_SORGENTE_BYTE {
         return Err(Errore::globale(format!(
             "il sorgente è troppo grande (massimo {} byte)",
@@ -65,14 +77,18 @@ pub fn compila_con_avvisi(sorgente: &str, opzioni: &Opzioni) -> Risultato<Compil
     let opzioni_html =
         OpzioniHtml { leggibile: opzioni.leggibile, player: !opzioni.senza_player };
     let html = codegen::genera_html(&scena, &opzioni_html);
-    Ok(Compilazione {
-        html,
-        durata: scena.durata,
-        larghezza: scena.larghezza,
-        altezza: scena.altezza,
-        fps: scena.fps,
-        avvisi: scena.avvisi,
-    })
+    let sfondo = scena.sfondo;
+    Ok((
+        Compilazione {
+            html,
+            durata: scena.durata,
+            larghezza: scena.larghezza,
+            altezza: scena.altezza,
+            fps: scena.fps,
+            avvisi: scena.avvisi,
+        },
+        sfondo,
+    ))
 }
 
 /// Compila un sorgente Joy++ in memoria e restituisce il solo documento HTML.
@@ -97,6 +113,22 @@ pub fn output_predefinito(sorgente: &Path) -> PathBuf {
 /// File mancante o illeggibile, file troppo grande, non UTF-8, errori di compilazione,
 /// output coincidente con l'ingresso, errori di scrittura.
 pub fn compila_file(ingresso: &Path, uscita: &Path, opzioni: &Opzioni) -> Risultato<Esito> {
+    let sorgente = leggi_sorgente(ingresso, uscita, "-o output.html")?;
+    let Compilazione { html, avvisi, .. } = compila_con_avvisi(&sorgente, opzioni)?;
+    if let Some(cartella) = uscita.parent().filter(|p| !p.as_os_str().is_empty()) {
+        fs::create_dir_all(cartella).map_err(|e| {
+            Errore::globale(format!("impossibile creare la cartella «{}»: {e}", cartella.display()))
+        })?;
+    }
+    fs::write(uscita, &html).map_err(|e| {
+        Errore::globale(format!("impossibile scrivere «{}»: {e}", uscita.display()))
+    })?;
+    Ok(Esito { byte: html.len(), avvisi })
+}
+
+/// Legge il sorgente con i controlli comuni (dimensione, output diverso dal sorgente, UTF-8).
+/// `esempio` è l'esempio di `-o` mostrato nel suggerimento (`-o output.html`, `-o video.mp4`).
+pub(crate) fn leggi_sorgente(ingresso: &Path, uscita: &Path, esempio: &str) -> Risultato<String> {
     let metadati = fs::metadata(ingresso).map_err(|e| {
         Errore::globale(format!("impossibile leggere «{}»: {e}", ingresso.display()))
     })?;
@@ -109,25 +141,15 @@ pub fn compila_file(ingresso: &Path, uscita: &Path, opzioni: &Opzioni) -> Risult
     }
     if stesso_file(ingresso, uscita) {
         return Err(Errore::globale("il file di output coincide con il sorgente: lo sovrascriverei")
-            .con_suggerimento("scegli un percorso diverso con -o, es. -o output.html"));
+            .con_suggerimento(format!("scegli un percorso diverso con -o, es. {esempio}")));
     }
     let byte = fs::read(ingresso).map_err(|e| {
         Errore::globale(format!("impossibile leggere «{}»: {e}", ingresso.display()))
     })?;
-    let sorgente = String::from_utf8(byte).map_err(|_| {
+    String::from_utf8(byte).map_err(|_| {
         Errore::globale(format!("«{}» non è un file di testo UTF-8", ingresso.display()))
             .con_suggerimento("salva il file con codifica UTF-8")
-    })?;
-    let Compilazione { html, avvisi, .. } = compila_con_avvisi(&sorgente, opzioni)?;
-    if let Some(cartella) = uscita.parent().filter(|p| !p.as_os_str().is_empty()) {
-        fs::create_dir_all(cartella).map_err(|e| {
-            Errore::globale(format!("impossibile creare la cartella «{}»: {e}", cartella.display()))
-        })?;
-    }
-    fs::write(uscita, &html).map_err(|e| {
-        Errore::globale(format!("impossibile scrivere «{}»: {e}", uscita.display()))
-    })?;
-    Ok(Esito { byte: html.len(), avvisi })
+    })
 }
 
 fn stesso_file(a: &Path, b: &Path) -> bool {
