@@ -12,6 +12,12 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 - Stato iniziale dichiarativo v0.2 (SPECIFICA B.1): proprietà `scala N` e `rotazione G gradi` nella frase `Crea`, valide per ogni tipo di attore; il compilatore le valida e il renderer le emette come `scale`/`rotate` statici sul wrapper dell'attore.
 - Avvisi non bloccanti v0.2 (SPECIFICA B.6): primo avviso, «rotazione invisibile su un cerchio», stampato su stderr senza cambiare l'exit code; nuova API `compila_con_avvisi` che restituisce `Compilazione { html, avvisi }`.
 - Esempio `examples/stato_iniziale.joy`: stato iniziale con scala e rotazione dichiarate alla creazione.
+- Gruppi annidati v0.2 (SPECIFICA B.3): `Crea un gruppo chiamato "G" con "A", "B"...`, animabili come un unico attore; fino a 16 livelli di annidamento; pivot al centro dell'AABB degli ingombri dei membri.
+- Ingressi e uscite dai bordi v0.2 (SPECIFICA B.2): `entra da …` ed `esce verso …`, con ingombro prudente e salto istantaneo.
+- Verbo `orbita attorno a` (SPECIFICA B.4.1): centro statico, verso antiorario predefinito (`in senso orario` per l'inverso), campioni calcolati con la sagitta (≤ 0,5 px).
+- Verbo `cambia colore in` (SPECIFICA B.4.2): animazione del colore della forma, fuori da `will-change`.
+- Esempio `examples/sistema_orbitale.joy`: sottogruppo "pianeta" che orbita il sole.
+- Specifica: il `--fps` predefinito di `joypp render` segue `a N fotogrammi` dell'intestazione, con fallback 60 (SPECIFICA B.9.1).
 
 ### Corretto
 - Il suggerimento «forse intendevi "…"?» non propone più l'attore che si sta creando; i candidati sono ordinati per somiglianza.
@@ -19,6 +25,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Sicurezza
 - Il lexer rifiuta i caratteri bidirezionali (U+202A..U+202E, U+2066..U+2069, U+200E, U+200F, U+061C) e i separatori di riga Unicode (U+2028, U+2029), che potrebbero falsare il testo mostrato nei messaggi e negli avvisi ("Trojan Source"). Il controllo è `security::carattere_non_ammesso`.
+- Tetto globale di 200000 keyframe per scena (`MAX_KEYFRAME_TOTALI`, anti-DoS): senza tetto un'animazione di gruppi e orbite poteva produrre un HTML di oltre 1 GB.
+- Limite di profondità dei gruppi (`MAX_PROFONDITA_GRUPPI = 16`); i gruppi contano in `MAX_ATTORI`.
+- I caratteri bidirezionali e i separatori di riga Unicode sono bloccati anche nei nomi dei membri dei gruppi.
 
 ## [0.1.0] - 2026-11-13
 
