@@ -42,6 +42,29 @@ pub mod limiti {
     pub const MAX_BPM: f64 = 1_200.0;
     /// Intensità massima di una pulsazione.
     pub const MAX_INTENSITA: f64 = 20.0;
+
+    // --- Limiti di `joypp render` (SPECIFICA B.9.7 e B.9.10) ---
+
+    /// Massimo valore di `--fps` (B.9.7).
+    pub const MAX_FPS_VIDEO: u32 = 240;
+    /// Massimo valore di `--crf` (B.9.7).
+    pub const MAX_CRF: u8 = 51;
+    /// Massimo numero di fotogrammi: un'ora a 60 fps, ultimo incluso (B.9.7).
+    pub const MAX_FOTOGRAMMI_VIDEO: u64 = 216_001;
+    /// Massimo lato del video in pixel, dopo il pad (B.9.7).
+    pub const MAX_LATO_VIDEO: u32 = 8192;
+    /// Massimo numero di pixel di un fotogramma, 8192 × 4320 (B.9.7).
+    pub const MAX_PIXEL_VIDEO: u64 = 35_389_440;
+    /// Attesa di `DevToolsActivePort` all'avvio del browser (B.9.5, B.9.7).
+    pub const TIMEOUT_AVVIO_BROWSER: std::time::Duration = std::time::Duration::from_secs(30);
+    /// Attesa della risposta a un comando CDP o di un evento (B.9.5, B.9.7).
+    pub const TIMEOUT_COMANDO_CDP: std::time::Duration = std::time::Duration::from_secs(30);
+    /// Attesa dell'uscita del browser dopo `Browser.close` (B.9.5).
+    pub const TIMEOUT_CHIUSURA: std::time::Duration = std::time::Duration::from_secs(5);
+    /// Dimensione massima di un messaggio WebSocket/CDP riassemblato: 256 MiB (B.9.7, B.9.10).
+    pub const MAX_MESSAGGIO_CDP: usize = 256 * 1024 * 1024;
+    /// Profondità massima di annidamento del JSON delle risposte CDP (B.9.10).
+    pub const PROFONDITA_MASSIMA_JSON: usize = 64;
 }
 
 /// Esegue l'escape di una stringa per l'inserimento sicuro in HTML

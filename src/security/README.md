@@ -31,6 +31,12 @@ in 29 s). È applicato dal compilatore con `keyframe::Tetto` (`src/compiler/keyf
 contatore unico, la compilazione si ferma appena il totale supera il limite con un errore
 globale. Inoltre ogni orbita verifica una sola volta che `|centro| + raggio` resti entro
 `MAX_COORDINATA`.
+Limiti di `joypp render` (B.9.7/B.9.10), tutti in `limiti`: `MAX_FPS_VIDEO = 240`,
+`MAX_CRF = 51`, `MAX_FOTOGRAMMI_VIDEO = 216001`, `MAX_LATO_VIDEO = 8192`,
+`MAX_PIXEL_VIDEO = 35389440`, `TIMEOUT_AVVIO_BROWSER`/`TIMEOUT_COMANDO_CDP` = 30 s,
+`TIMEOUT_CHIUSURA` = 5 s, `MAX_MESSAGGIO_CDP` = 256 MiB, `PROFONDITA_MASSIMA_JSON = 64`.
+Sono applicati prima di avviare qualsiasi processo (fotogrammi, lato, Mpx) o su ogni lettura
+del client CDP; il modulo `exporter::render` li richiama da qui.
 Anche il calcolo dei suggerimenti "forse intendevi" è limitato, per evitare costi quadratici.
 
 ## Verifica
