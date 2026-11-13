@@ -6,6 +6,11 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Aggiunto
+- Esempio `examples/cattedrale.joy`: stress test 4K (3840×2160, 60 fps) di 30 s con 164 attori e 5 atti.
+- Esempio `examples/JOYPP_VOXEL_OVERDRIVE_v021.joy`: stress test 4K (3840×2160, 60 fps) di 48 s, geometria pseudo-voxel con gruppi, orbite e HUD.
+- Nuova versione di `examples/sfida_hyperframe_20s.joy`: sfida "Astrolabio" 4K (3840×2160, 60 fps) di circa 14 s.
+
 ## [0.2.1] - 2026-11-13
 
 Patch: `appare sfumando` su un attore con `opacità 0` ora lo rende visibile; nuovo avviso sulle opacità che non cambiano nulla.
