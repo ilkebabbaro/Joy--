@@ -7,6 +7,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 ## [Unreleased]
 
 ### Aggiunto
+- Generatore DOM (`src/codegen/dom.rs`): documento HTML5 auto-contenuto con CSS3 `@keyframes`
+  sulle sole proprietà composite (`translate`, `rotate`, `scale`, `opacity`), `will-change`
+  mirato, palco adattato alla finestra e output compatto o leggibile.
 - Compilatore (`src/compiler`): risoluzione iterativa delle posizioni relative con rilevamento
   dei cicli, ancoraggio dei blocchi relativi, canali di animazione indipendenti
   (opacità, traslazione, rotazione, scala) con rilevamento delle sovrapposizioni,
