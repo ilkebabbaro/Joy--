@@ -13,6 +13,9 @@ pub mod limiti {
     pub const MAX_LATO_PALCO: f64 = 16_384.0;
     /// Numero massimo di attori in una scena.
     pub const MAX_ATTORI: usize = 5_000;
+    /// Profondità massima di annidamento dei gruppi (SPECIFICA B.3/B.2: 16 livelli).
+    /// I gruppi contano anche nel limite [`MAX_ATTORI`].
+    pub const MAX_PROFONDITA_GRUPPI: usize = 16;
     /// Dimensione massima (raggio, larghezza, spessore, grandezza testo...) in pixel.
     pub const MAX_DIMENSIONE: f64 = 100_000.0;
     /// Valore assoluto massimo di una coordinata o di uno spostamento in pixel.
@@ -21,6 +24,10 @@ pub mod limiti {
     pub const MAX_DURATA_SCENA: f64 = 3_600.0;
     /// Numero massimo di keyframe per singola animazione.
     pub const MAX_KEYFRAME: usize = 10_000;
+    /// Numero massimo di keyframe sommati su tutta la scena (anti-DoS sulla dimensione
+    /// dell'HTML: senza tetto globale 4000 orbite da 7200 campioni producono ~1,3 GB).
+    /// Da applicare nel compilatore alla fine della generazione dei canali.
+    pub const MAX_KEYFRAME_TOTALI: usize = 200_000;
     /// Lunghezza massima di un testo, in caratteri.
     pub const MAX_LUNGHEZZA_TESTO: usize = 10_000;
     /// Lunghezza massima del nome di un attore, in caratteri.

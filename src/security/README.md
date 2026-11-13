@@ -22,6 +22,12 @@ Funzioni pure usate da parser, compilatore e generatore.
 Costanti che impediscono di generare file che bloccherebbero il browser o il compilatore:
 dimensione massima del sorgente, del palco, numero di attori, durata della scena,
 numero di keyframe per animazione, lunghezza di testi e nomi, scala, rotazione, BPM.
+Dalla v0.2: `MAX_PROFONDITA_GRUPPI = 16` (annidamento dei gruppi; i gruppi contano in
+`MAX_ATTORI`). I campioni di `orbita` sono limitati da `MAX_KEYFRAME` (10000), il raggio da
+`MAX_COORDINATA`; il nome di gruppi e attori in `data-nome` passa da `escape_html`.
+`MAX_KEYFRAME_TOTALI = 200000` è il tetto globale (somma su tutti gli attori) previsto
+dall'audit di sicurezza v0.2-2B: il compilatore deve ancora applicarlo (misurato: 4000 orbite
+da 7200 campioni = 1,3 GB di HTML in 29 s).
 Anche il calcolo dei suggerimenti "forse intendevi" è limitato, per evitare costi quadratici.
 
 ## Verifica
