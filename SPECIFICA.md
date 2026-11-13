@@ -978,8 +978,19 @@ non legge `data-nome` né il contenuto dei testi. Non usa `eval`, `Function` o `
   dell'unità) è codificato come `%XX`. Un percorso UNC (`\\server\…`) è un errore (B.9.7).
 * **Rimozione:** una guardia (`Drop`) rimuove ricorsivamente la cartella alla fine, sia in caso di
   successo sia in caso di errore, **dopo** la chiusura del browser (su Windows i file aperti non si
-  possono cancellare). Se la rimozione fallisce stampa l'avviso di B.9.7. Un'interruzione con Ctrl+C
-  può lasciare la cartella, perché la libreria standard non gestisce i segnali: è un limite noto.
+  possono cancellare). Se la rimozione fallisce stampa l'avviso di B.9.7.
+* **Limite noto: terminazione forzata.** La pulizia (cartella temporanea, file parziale, chiusura di
+  browser e ffmpeg) è garantita **solo** per le uscite ordinarie, gli errori e i `panic!`, tramite le
+  guardie `Drop`. Se il processo `joypp` viene terminato in modo forzato (`taskkill /F`, `SIGKILL`,
+  Ctrl+C o `SIGTERM` senza gestore) i `Drop` non vengono eseguiti e possono restare la cartella
+  `joypp-render-*`, il file `.joypp-parziale` e i processi del browser e di ffmpeg orfani. Il crate
+  non può installare un gestore di segnali: servirebbe codice `unsafe` (vietato da
+  `#![forbid(unsafe_code)]`) o una dipendenza (esclusa da D-B9-1). **Mitigazione per l'utente:**
+  eliminare a mano le cartelle `joypp-render-*` nella cartella temporanea di sistema (`%TEMP%` su
+  Windows, `$TMPDIR` o `/tmp` su Unix), l'eventuale `<uscita>.joypp-parziale`, e chiudere gli
+  eventuali processi rimasti. *Possibile miglioramento futuro (non normativo):* all'avvio di un
+  render, rimuovere automaticamente le cartelle `joypp-render-<pid>-*` il cui `pid` non corrisponde
+  più a un processo attivo.
 * **Output parziale:** ffmpeg scrive in `<cartella di uscita>/<nome di uscita>.joypp-parziale`. Solo
   a fine render riuscito il file viene rinominato in `<uscita>` (`fs::rename`, che sostituisce un
   file esistente). In caso di errore il parziale viene rimosso e un vecchio file `<uscita>` resta
@@ -1017,8 +1028,16 @@ argomenti sono esattamente questi:
 --disable-background-networking --disable-component-update --disable-default-apps
 --disable-background-timer-throttling --disable-backgrounding-occluded-windows
 --disable-renderer-backgrounding --mute-audio --hide-scrollbars
---force-device-scale-factor=1 --force-color-profile=srgb --window-size=W,H about:blank
+--force-device-scale-factor=1 --force-color-profile=srgb --window-size=W',H' about:blank
 ```
+**Finestra e viewport (normativo):** `W' = max(W, 500)` e `H' = max(H, 500)` (costante
+`LATO_MINIMO_FINESTRA = 500`). La finestra può quindi essere più grande del palco, ma la viewport è
+**sempre esattamente** `W × H`: la impone `Emulation.setDeviceMetricsOverride` con
+`deviceScaleFactor: 1` (passo 6). Ogni PNG catturato è verificato tramite l'`IHDR` (passo 10): se
+larghezza e altezza non sono esattamente `W × H` è un errore (B.9.7), mai un ritaglio o un
+ridimensionamento. Motivo: con una finestra più piccola (es. il palco 64×36 di B.9.9) Edge headless
+smette di rispondere a `Page.captureScreenshot` dopo 5-6 fotogrammi (timeout).
+
 `--no-sandbox` **non** viene mai aggiunto (B.9.8). Il profilo dedicato serve anche perché le versioni
 recenti di Chrome ignorano `--remote-debugging-port` con il profilo predefinito.
 
@@ -1059,7 +1078,7 @@ Il client minimale comprende (stima ≤ 800 righe, tutte con test unitari):
 4. `Target.createTarget {"url":"about:blank"}` → `targetId`.
 5. `Target.attachToTarget {"targetId":…,"flatten":true}` → `sessionId`.
 6. `Emulation.setDeviceMetricsOverride {"width":W,"height":H,"deviceScaleFactor":1,"mobile":false}`:
-   viewport identica al palco.
+   viewport identica al palco, indipendentemente dalla finestra `W' × H'` di avvio.
 7. `Emulation.setDefaultBackgroundColorOverride {"color":{"r":0,"g":0,"b":0,"a":1}}`: sfondo
    opaco. Il `body` è già `#000` e il palco copre tutta la viewport. Uno `sfondo` semitrasparente
    risulta quindi composto su nero, come nella pagina aperta normalmente.
@@ -1168,6 +1187,9 @@ voce nel formato di `Errore` (`Errore: …` più l'eventuale `Suggerimento: …`
 * `ffmpeg non trovato` (suggerimento: «installalo da https://ffmpeg.org e aggiungilo al PATH, oppure
   indica il percorso con la variabile d'ambiente JOYPP_FFMPEG»);
 * `JOYPP_FFMPEG indica «X», che non esiste` e `impossibile avviare ffmpeg («X»): <errore di sistema>`;
+* ``ffmpeg («X») non funziona: `-version` è terminato con un errore``: verifica preliminare di B.9.6
+  (`ffmpeg -hide_banner -version` con codice ≠ 0), eseguita subito dopo la ricerca di ffmpeg e
+  quindi prima della ricerca del browser e della creazione della cartella temporanea;
 * `nessun browser compatibile trovato (Chrome, Chromium o Edge)` (suggerimento: «installa Google
   Chrome o Microsoft Edge, oppure indica il percorso con la variabile d'ambiente JOYPP_BROWSER»);
 * `JOYPP_BROWSER indica «X», che non esiste` e `impossibile avviare il browser («X»): <errore di sistema>`;
@@ -1175,18 +1197,37 @@ voce nel formato di `Errore` (`Errore: …` più l'eventuale `Suggerimento: …`
   «imposta TEMP/TMPDIR su una cartella locale»);
 * `il browser non ha aperto la porta di debug entro 30 secondi` (suggerimento: «verifica che «X» sia
   Chrome, Chromium o Edge in una versione recente»);
+* `il browser ha scritto un file DevToolsActivePort non valido: <motivo>`, con `<motivo>`
+  `porta non valida «X»` (riga 1 non intera tra 1 e 65535) o `percorso non valido «X»` (riga 2 che
+  non inizia con `/devtools/browser/`), letto quando il file è completo e stabile (B.9.5, passo 1);
 * `il browser si è chiuso inaspettatamente (codice C)` (o `(terminato da un segnale)`);
 * `il browser non ha risposto entro 30 secondi (comando «M», fotogramma k/N)`;
 * `il browser ha segnalato un errore: <messaggio>` (per `error` CDP e `errorText` della navigazione);
-* `errore interno: la pagina generata non espone __joy_seek` (e ogni `exceptionDetails` di
-  `__joy_seek`). È un bug: il suggerimento invita a segnalarlo;
+* `errore interno: la pagina generata non espone __joy_seek` (passo 9 di B.9.5),
+  `errore interno: __joy_seek ha fallito: <motivo>` (la valutazione restituisce `exceptionDetails`)
+  ed `errore interno: __joy_seek ha restituito un istante diverso da quello richiesto` (valore non
+  numerico o lontano da `t_k` più di `10⁻⁶`, passo 10). Sono bug: il suggerimento è «è un bug di
+  Joy++: segnalalo allegando il file .joy»;
 * `lo screenshot è W'×H' invece di W×H` (suggerimento: «il browser ridimensiona la pagina: segnala il
   problema indicando browser e sistema operativo»);
 * `messaggio del browser troppo grande (massimo 256 MiB)` e `risposta del browser non valida: <motivo>`;
 * `ffmpeg è terminato con un errore (codice C)` seguito da `  ffmpeg: <riga>` per le ultime righe
   (al massimo 20). Se lo stderr nomina `libx264`, il suggerimento è «installa una versione di ffmpeg
   che includa libx264 (es. una build GPL)»;
-* `impossibile scrivere «X»: <errore>` (cartella di uscita, file parziale, rinomina).
+* `impossibile scrivere i fotogrammi a ffmpeg: <errore di I/O>` seguito dalle righe `  ffmpeg: …`:
+  la scrittura nello stdin è fallita ma ffmpeg è terminato con codice 0. Se il codice è ≠ 0 prevale
+  il messaggio precedente (B.9.6). Stesso suggerimento su `libx264`;
+* `ffmpeg ha chiuso la pipe prima della fine`: ffmpeg ha smesso di accettare fotogrammi prima
+  dell'`N`-esimo, ma è terminato con codice 0 e senza errori di scrittura. È una salvaguardia: un
+  video con meno di `N` fotogrammi non viene mai rinominato in `<uscita>`;
+* `impossibile creare la cartella «X»: <errore>`: creazione della cartella di uscita
+  (`fs::create_dir_all`), con lo stesso testo di `compila_file`;
+* `impossibile scrivere «X»: <errore>`: tutte le altre operazioni su file e percorsi, cioè
+  `scena.html` e `profilo/` nella cartella temporanea, la risoluzione del percorso assoluto di
+  scena e uscita, la rinomina finale del parziale e la lettura della dimensione del file prodotto.
+  Criterio: «creare la cartella» vale solo per la cartella di uscita, «scrivere» per tutto il resto.
+
+Tutti gli errori di questo elenco hanno **exit code 1**.
 
 Per i messaggi che includono lo stderr del browser o di ffmpeg si riportano al massimo le ultime 20
 righe, ciascuna preceduta da `  browser: ` o `  ffmpeg: `. **Su ogni errore**: si chiudono browser e
@@ -1274,8 +1315,18 @@ un fallimento (per la CI). Casi:
 * precisione di `__joy_seek` via CDP: dopo `__joy_seek(250)`, `getComputedStyle` di un attore
   restituisce la traslazione precalcolata a `t = 0.25 s` (tolleranza 0.01 px);
 * nessun file `joypp-render-*` resta nella cartella temporanea e nessun `.joypp-parziale` resta
-  accanto all'output, sia dopo un successo sia dopo un errore provocato (ad esempio
-  `JOYPP_FFMPEG` che punta a un eseguibile che termina con codice 1).
+  accanto all'output, sia dopo un successo sia dopo un errore provocato. Gli errori di ffmpeg sono
+  due casi distinti (B.9.7), exit code 1 in entrambi e un eventuale `<uscita>` preesistente intatto:
+  * **ffmpeg non eseguibile o non valido:** `JOYPP_FFMPEG` punta a un eseguibile che termina con
+    codice ≠ 0 già con `-hide_banner -version`. Lo intercetta la verifica preliminare di B.9.6 con
+    ``ffmpeg («X») non funziona: `-version` è terminato con un errore``. Il browser non viene
+    avviato e non si crea né la cartella temporanea né il file parziale;
+  * **ffmpeg fallisce durante la codifica:** `JOYPP_FFMPEG` punta a un eseguibile di prova che
+    termina con codice 0 per `-hide_banner -version` e con codice ≠ 0 (es. 1, dopo aver scritto una
+    riga su stderr) con gli argomenti di codifica, cioè dopo l'avvio della pipe. L'errore è
+    `ffmpeg è terminato con un errore (codice 1)` seguito dalle righe `  ffmpeg: …`. Qui browser e
+    cartella temporanea sono già stati avviati e creati: alla fine non devono restare né la
+    cartella né un file parziale.
 
 #### B.9.10 Riparto dei ruoli
 | Ruolo | Compito |
