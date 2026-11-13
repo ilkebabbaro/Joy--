@@ -118,6 +118,13 @@ fn stile_attore(e: &mut Emettitore, attore: &AttoreCompilato, durata: f64) {
         attore.stile.livello,
         numero(attore.opacita_iniziale)
     );
+    // Stato iniziale statico (B.1): solo se diverso dal default, per non alterare l'output v0.1.
+    if attore.scala_iniziale != 1.0 {
+        regole.push_str(&format!(";scale:{}", numero(attore.scala_iniziale)));
+    }
+    if attore.rotazione_iniziale != 0.0 {
+        regole.push_str(&format!(";rotate:{}deg", numero(attore.rotazione_iniziale)));
+    }
     if !attore.animazioni.is_empty() && durata > 0.0 {
         let animazioni: Vec<String> = attore
             .animazioni
@@ -194,5 +201,31 @@ fn curva(c: &Curva) -> String {
             let p: Vec<String> = punti.iter().map(|v| numero(*v)).collect();
             format!("linear({})", p.join(","))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::codegen::genera_html;
+
+    fn html(sorgente: &str, scala: f64, rotazione: f64) -> String {
+        let mut p = crate::parser::analizza(sorgente).expect("parse");
+        p.attori[0].stile.scala = scala;
+        p.attori[0].stile.rotazione = rotazione;
+        let s = crate::compiler::compila(&p).expect("compila");
+        genera_html(&s, false)
+    }
+
+    #[test]
+    fn scala_e_rotazione_iniziali_nella_regola_statica() {
+        let h = html("Prepara un palco grande 800 per 600 con sfondo nero.\nCrea un quadrato chiamato \"q\" al centro.\n", 0.0, 45.0);
+        assert!(h.contains("scale:0"), "{h}");
+        assert!(h.contains("rotate:45deg"), "{h}");
+    }
+
+    #[test]
+    fn valori_di_default_non_emettono_nulla() {
+        let h = html("Prepara un palco grande 800 per 600 con sfondo nero.\nCrea un quadrato chiamato \"q\" al centro.\n", 1.0, 0.0);
+        assert!(!h.contains("scale:") && !h.contains("rotate:"), "{h}");
     }
 }

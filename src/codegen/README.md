@@ -23,3 +23,12 @@ dalla `ScenaCompilata`.
 - Gli `id` e i nomi `@keyframes` sono generati (`a0`, `a0-opacita`), mai derivati dall'input.
 - I colori sono riemessi da valori numerici (`rgba(...)`).
 - Modalità compatta (default) o leggibile (`--pretty`) tramite un emettitore interno.
+
+## Stato iniziale statico: `scale` e `rotate` (v0.2, B.1)
+
+`stile_attore` aggiunge alla regola statica `#aN{...}` del wrapper `scale:<s0>` se
+`scala_iniziale != 1` e `rotate:<r0>deg` se `rotazione_iniziale != 0`. Con i valori
+di default non viene emesso nulla (output v0.1 invariato byte per byte). `rotate` e
+`scale` sono proprietà CSS individuali con `transform-origin:0 0` nel centro
+dell'attore, quindi la regola statica si compone con i keyframe (il primo keyframe
+riporta lo stesso valore iniziale). Per i valori statici non serve `will-change`.
