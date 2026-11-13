@@ -30,6 +30,10 @@ pub struct ArgomentiRender {
     pub uscita: Option<PathBuf>,
     /// `--fps` e `--crf`.
     pub video: OpzioniVideo,
+    /// `--profilo`: stampa il rapporto di diagnostica su stderr.
+    pub profilo_testo: bool,
+    /// `--profilo-json <file>`: scrive il rapporto JSON nel file indicato, se presente.
+    pub profilo_json: Option<PathBuf>,
 }
 
 /// Cosa deve fare il programma.
@@ -77,6 +81,8 @@ pub fn interpreta(argomenti: impl IntoIterator<Item = String>) -> Result<Comando
     let mut osserva = false;
     let mut fps: Option<u32> = None;
     let mut crf = CRF_PREDEFINITO;
+    let mut profilo_testo = false;
+    let mut profilo_json: Option<PathBuf> = None;
     while let Some(a) = it.next() {
         match a.as_str() {
             "-h" | "--help" => return Ok(Comando::Aiuto),
@@ -115,6 +121,23 @@ pub fn interpreta(argomenti: impl IntoIterator<Item = String>) -> Result<Comando
                     crf = c as u8;
                 }
             }
+            "--profilo" => {
+                if !render {
+                    return Err(Errore::globale(format!("l'opzione «{a}» vale solo con «joypp render»"))
+                        .con_suggerimento("es. «joypp render scena.joy --profilo»"));
+                }
+                profilo_testo = true;
+            }
+            "--profilo-json" => {
+                if !render {
+                    return Err(Errore::globale(format!("l'opzione «{a}» vale solo con «joypp render»"))
+                        .con_suggerimento("es. «joypp render scena.joy --profilo-json profilo.json»"));
+                }
+                let p = it
+                    .next()
+                    .ok_or_else(|| Errore::globale(format!("l'opzione {a} richiede un valore")))?;
+                profilo_json = Some(PathBuf::from(p));
+            }
             "--watch" | "--pretty" | "--senza-player" if render => {
                 let e = Errore::globale(format!("l'opzione «{a}» non è ammessa con «joypp render»"));
                 return Err(if a == "--watch" {
@@ -141,7 +164,14 @@ pub fn interpreta(argomenti: impl IntoIterator<Item = String>) -> Result<Comando
     }
     let ingresso = ingresso.ok_or_else(|| Errore::globale("manca il file sorgente .joy"))?;
     if render {
-        Ok(Comando::Render(ArgomentiRender { ingresso, uscita, video: OpzioniVideo { fps, crf } }))
+        let profilo = profilo_testo || profilo_json.is_some();
+        Ok(Comando::Render(ArgomentiRender {
+            ingresso,
+            uscita,
+            video: OpzioniVideo { fps, crf, profilo },
+            profilo_testo,
+            profilo_json,
+        }))
     } else {
         Ok(Comando::Compila(ArgomentiCompila { ingresso, uscita, opzioni, osserva }))
     }
@@ -172,7 +202,8 @@ mod test {
         let r = render("render scena.joy");
         assert_eq!(r.ingresso, PathBuf::from("scena.joy"));
         assert_eq!(r.uscita, None);
-        assert_eq!(r.video, OpzioniVideo { fps: None, crf: 18 });
+        assert_eq!(r.video, OpzioniVideo { fps: None, crf: 18, profilo: false });
+        assert!(!r.profilo_testo && r.profilo_json.is_none());
         assert_eq!(uscita_video_predefinita(&r.ingresso), PathBuf::from("scena.mp4"));
     }
 
@@ -202,7 +233,7 @@ mod test {
     #[test]
     fn opzioni_prima_e_dopo_il_file() {
         let r = render("render --fps 30 -o v.mp4 s.joy --crf 23");
-        assert_eq!(r.video, OpzioniVideo { fps: Some(30), crf: 23 });
+        assert_eq!(r.video, OpzioniVideo { fps: Some(30), crf: 23, profilo: false });
         assert_eq!(r.uscita, Some(PathBuf::from("v.mp4")));
     }
 
@@ -242,8 +273,55 @@ mod test {
     #[test]
     fn opzione_ripetuta_vale_l_ultima() {
         let r = render("render s.joy --fps 10 --fps 20 --crf 1 --crf 2 -o a.mp4 -o b.mp4");
-        assert_eq!(r.video, OpzioniVideo { fps: Some(20), crf: 2 });
+        assert_eq!(r.video, OpzioniVideo { fps: Some(20), crf: 2, profilo: false });
         assert_eq!(r.uscita, Some(PathBuf::from("b.mp4")));
+    }
+
+    #[test]
+    fn profilo_testo_da_solo() {
+        let r = render("render s.joy --profilo");
+        assert!(r.profilo_testo);
+        assert_eq!(r.profilo_json, None);
+        assert!(r.video.profilo);
+    }
+
+    #[test]
+    fn profilo_json_richiede_il_valore_successivo() {
+        let r = render("render s.joy --profilo-json x.json");
+        assert!(!r.profilo_testo);
+        assert_eq!(r.profilo_json, Some(PathBuf::from("x.json")));
+        assert!(r.video.profilo);
+        assert_eq!(
+            p("render s.joy --profilo-json").unwrap_err().messaggio,
+            "l'opzione --profilo-json richiede un valore"
+        );
+        assert_eq!(
+            p("render s.joy --profilo-json=x.json").unwrap_err().messaggio,
+            "opzione sconosciuta «--profilo-json=x.json»"
+        );
+    }
+
+    #[test]
+    fn profilo_combinati_e_ripetuti() {
+        let r = render("render s.joy --profilo --profilo-json x.json");
+        assert!(r.profilo_testo);
+        assert_eq!(r.profilo_json, Some(PathBuf::from("x.json")));
+        assert!(r.video.profilo);
+        let r = render("render s.joy --profilo-json a.json --profilo-json b.json");
+        assert_eq!(r.profilo_json, Some(PathBuf::from("b.json")));
+    }
+
+    #[test]
+    fn profilo_senza_render() {
+        let e = interpreta(["s.joy", "--profilo"].map(String::from)).unwrap_err();
+        assert_eq!(e.messaggio, "l'opzione «--profilo» vale solo con «joypp render»");
+        assert_eq!(e.suggerimento.as_deref(), Some("es. «joypp render scena.joy --profilo»"));
+        let e = interpreta(["s.joy", "--profilo-json", "x.json"].map(String::from)).unwrap_err();
+        assert_eq!(e.messaggio, "l'opzione «--profilo-json» vale solo con «joypp render»");
+        assert_eq!(
+            e.suggerimento.as_deref(),
+            Some("es. «joypp render scena.joy --profilo-json profilo.json»")
+        );
     }
 
     #[test]

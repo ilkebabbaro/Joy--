@@ -11,6 +11,7 @@ pub mod browser;
 pub mod cdp;
 pub mod ffmpeg;
 pub mod json;
+pub mod profilo;
 pub mod websocket;
 
 use std::fs;
@@ -39,11 +40,13 @@ pub struct OpzioniVideo {
     pub fps: Option<u32>,
     /// `--crf` (0-51).
     pub crf: u8,
+    /// Misure di diagnostica attive (`--profilo` o `--profilo-json`).
+    pub profilo: bool,
 }
 
 impl Default for OpzioniVideo {
     fn default() -> Self {
-        Self { fps: None, crf: CRF_PREDEFINITO }
+        Self { fps: None, crf: CRF_PREDEFINITO, profilo: false }
     }
 }
 
@@ -60,6 +63,8 @@ pub struct EsitoVideo {
     pub fps: u32,
     /// Dimensione del file scritto, in byte.
     pub byte: u64,
+    /// Rapporto di diagnostica: `Some` se e solo se `OpzioniVideo::profilo` era attivo.
+    pub profilo: Option<profilo::Profilo>,
 }
 
 impl EsitoVideo {
@@ -479,6 +484,10 @@ pub fn render_file(
     opzioni: &OpzioniVideo,
     progresso: &mut dyn FnMut(Evento),
 ) -> Risultato<EsitoVideo> {
+    // Ramo provvisorio: le misure di `--profilo` arriveranno in un commit successivo.
+    if opzioni.profilo {
+        return Err(Errore::globale("la diagnostica --profilo non è ancora supportata"));
+    }
     let sorgente = leggi_sorgente(ingresso, uscita, "-o video.mp4")?;
     let (compilazione, sfondo) =
         compila_con_sfondo(&sorgente, &Opzioni { leggibile: false, senza_player: true })?;
@@ -559,7 +568,7 @@ pub fn render_file(
     fs::rename(&parziale.percorso, &assoluta).map_err(|e| errore_scrittura(&assoluta, e))?;
     parziale.attivo = false;
     let byte = fs::metadata(&assoluta).map(|m| m.len()).map_err(|e| errore_scrittura(&assoluta, e))?;
-    Ok(EsitoVideo { fotogrammi: piano.n, larghezza: w2, altezza: h2, fps: piano.fps, byte })
+    Ok(EsitoVideo { fotogrammi: piano.n, larghezza: w2, altezza: h2, fps: piano.fps, byte, profilo: None })
 }
 
 #[cfg(test)]
@@ -685,7 +694,7 @@ mod test {
 
     #[test]
     fn durata_video_dell_esito() {
-        let e = EsitoVideo { fotogrammi: 511, larghezza: 2, altezza: 2, fps: 60, byte: 1 };
+        let e = EsitoVideo { fotogrammi: 511, larghezza: 2, altezza: 2, fps: 60, byte: 1, profilo: None };
         assert!((e.durata_video() - 8.5166).abs() < 1e-3);
     }
 }

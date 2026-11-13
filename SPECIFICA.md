@@ -902,9 +902,10 @@ joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N]
   sola, e l'HTML intermedio è sempre compatto e senza player (B.9.4).
 * **Non ammesse senza `render`:** `--fps` e `--crf`.
 * Il video ha sempre le dimensioni del palco: non esiste un'opzione di risoluzione.
-* L'aiuto (`-h`) aggiunge una sezione `joypp render` con le tre opzioni, i predefiniti (per `--fps`:
+* L'aiuto (`-h`) aggiunge una sezione `joypp render` con le tre opzioni (e, per C.1, `--profilo` e `--profilo-json`), i predefiniti (per `--fps`:
   «quello dell'intestazione, altrimenti 60») e le variabili d'ambiente `JOYPP_BROWSER` e
   `JOYPP_FFMPEG`.
+* Le opzioni diagnostiche `--profilo` e `--profilo-json` non sono in questa tabella: sono definite in C.1.
 
 #### B.9.2 `window.__joy_seek(ms)` nell'HTML (`@renderer`)
 **Emissione:** sempre, in ogni HTML generato: anche con `--senza-player`, anche con `--pretty`,
@@ -1216,6 +1217,8 @@ voce nel formato di `Errore` (`Errore: …` più l'eventuale `Suggerimento: …`
 * `manca il file sorgente .joy`, `opzione sconosciuta «X»`, `è ammesso un solo file sorgente`: come
   oggi.
 
+Gli errori d'uso e di scrittura delle opzioni diagnostiche `--profilo` e `--profilo-json` sono in C.1.1.
+
 **Errori di render (exit 1)**, in ordine di controllo. Si controlla prima ciò che non avvia processi:
 * errori di lettura e di compilazione del sorgente: come oggi;
 * output uguale al sorgente: il messaggio di `compila_file`, con il suggerimento
@@ -1374,8 +1377,177 @@ un fallimento (per la CI). Casi:
 | Ruolo | Compito |
 |-------|---------|
 | `@renderer` | `__joy_seek` in `dom.rs` (sempre emessa), controllo `data-joy-render` nello script di adattamento, regola CSS e guardie del mini-player (B.5) in modalità render. |
-| `@exporter` | Sottocomando e aiuto in `main.rs`; in `src/exporter/render/` la ricerca degli eseguibili, i file temporanei, il client CDP minimale (WebSocket, JSON, base64), il campionamento, ffmpeg, il progresso e la rinomina finale. API indicativa: `OpzioniVideo { fps: Option<u32>, crf: u8 }` (`None` = nessun `--fps`: si usa l'intestazione, altrimenti 60, B.9.1), `render_file(ingresso, uscita, &OpzioniVideo, progresso) -> Risultato<EsitoVideo>`. Aggiorna `src/exporter/README.md`. |
+| `@exporter` | Sottocomando e aiuto in `main.rs`; in `src/exporter/render/` la ricerca degli eseguibili, i file temporanei, il client CDP minimale (WebSocket, JSON, base64), il campionamento, ffmpeg, il progresso e la rinomina finale. API indicativa: `OpzioniVideo { fps: Option<u32>, crf: u8, profilo: bool }` (`profilo` da C.1, contratto in C.1.6) (`None` = nessun `--fps`: si usa l'intestazione, altrimenti 60, B.9.1), `render_file(ingresso, uscita, &OpzioniVideo, progresso) -> Risultato<EsitoVideo>`. Aggiorna `src/exporter/README.md`. |
 | `@security` | Revisione di argomenti dei processi, espressioni CDP, URL, file temporanei, porta di debug e pulizia dello stderr; nuove costanti in `security::limiti` (B.9.7). |
 | `@debugger` | Test di B.9.9; file minimi in `tests/repro/` per ogni bug del render. |
 | `@compiler` | Nessuna modifica: la durata, le dimensioni del palco e i fotogrammi dichiarati (`fps: Option<u32>`) sono già in `ScenaCompilata`. |
 | `@auditor` | `CHANGELOG.md` (`[Unreleased]`: «nuovo comando `joypp render` per esportare MP4»), coerenza con questa sezione, commit. |
+
+## Appendice C: v0.2.2 Performance & Reliability (approvata per lo sviluppo)
+
+Il ciclo v0.2.2 non aggiunge verbi né sintassi `.joy`. Lo scopo è la **misurabilità** (sapere quanto
+costa ogni fase di `joypp render`) e l'**affidabilità** dell'esecuzione. La versione in `Cargo.toml`
+resta `0.2.1` fino al rilascio di v0.2.2.
+
+**Implementano:** `@exporter` (opzioni CLI, misure, formati del rapporto e del JSON), `@security`
+(revisione: nessun percorso nel profilo, scrittura atomica del JSON), `@debugger` (test di C.1).
+`@renderer` e `@compiler` non modificano nulla in questo ciclo.
+
+### C.1 Diagnostica del render (`--profilo`, `--profilo-json`)
+
+**Scopo.** Per un render riuscito, misurare il tempo di ogni fase della pipeline di B.9 e il costo per
+fotogramma, con un rapporto leggibile (`--profilo`) e un JSON stabile per i confronti tra versioni e
+macchine (`--profilo-json`). Le misure non cambiano il video prodotto.
+
+#### C.1.1 CLI
+```text
+joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N] [--profilo] [--profilo-json <file.json>]
+```
+
+* `--profilo` (senza valore): a render riuscito stampa su **stderr** il rapporto leggibile, dopo la
+  riga `✔ …` su stdout.
+* `--profilo-json <file>`: a render riuscito scrive il rapporto JSON (schema `joypp-profilo/1`) in
+  `<file>`. Il valore è nell'argomento successivo (`--profilo-json=x` non è ammesso, come `-o`).
+* Le due opzioni sono indipendenti e combinabili; ognuna attiva le misure. Se ripetute vale l'ultima.
+* Errori d'uso (exit 2, seguiti dall'aiuto):
+  * senza `render`: `l'opzione «--profilo» vale solo con «joypp render»` (idem `--profilo-json`),
+    suggerimento «es. «joypp render scena.joy --profilo»»;
+  * `l'opzione --profilo-json richiede un valore`.
+* Errore di render (exit 1), controllato prima di avviare processi, subito dopo il controllo «output
+  uguale al sorgente»: se il percorso JSON coincide con il sorgente o con il video:
+  `il file del profilo deve essere diverso dal sorgente e dal video («X»)`, dove «X» è il percorso in
+  conflitto. Il confronto usa la stessa normalizzazione del controllo «output uguale al sorgente».
+* **Scrittura atomica del JSON.** Il JSON si scrive **dopo** la pubblicazione del video. Prima si scrive
+  in `<file>.joypp-parziale`, nella stessa cartella di `<file>`; poi il parziale viene rinominato in
+  `<file>`. La cartella di `<file>` viene creata se manca (come `-o`). In caso di errore di scrittura o
+  di rinomina il parziale viene rimosso e il messaggio è `impossibile scrivere «<file>»: <errore>`
+  (exit 1). Un `<file>` preesistente resta intatto finché la rinomina non riesce.
+* **Eccezione a B.9.7.** Un errore di scrittura del profilo avviene dopo la pubblicazione del video.
+  Quindi il video nuovo **resta** su disco anche se il comando termina con exit 1. Questa è l'unica
+  eccezione alla regola di B.9.7 «uscita preesistente intatta» per gli errori di render.
+* Il profilo esiste solo per i render **riusciti** (limite noto: un render fallito non produce profilo).
+* L'aiuto (`-h`) elenca le due opzioni nella sezione `joypp render`.
+
+#### C.1.2 Non intrusività (normativo)
+Senza `--profilo` e senza `--profilo-json` il render è identico alla v0.2.1: stessi comandi CDP, stessi
+processi e argomenti, stesso stdout/stderr, nessuna allocazione per fotogramma dovuta alle misure (sono
+ammesse letture di `Instant::now()`).
+
+Con le misure attive le sole operazioni aggiuntive ammesse sono:
+1. il comando CDP `Browser.getVersion` dopo la connessione e prima di `Target.createTarget` (escluso dal
+   tempo `connessione_cdp`), per leggere il campo `product`;
+2. la cattura dello stdout (prima riga) della verifica già esistente `ffmpeg -hide_banner -version`.
+
+Nessuna delle due tocca la pagina o gli argomenti di codifica. Il JS della pagina (`__joy_seek`) non
+cambia.
+
+#### C.1.3 Misure
+Tempi da `std::time::Instant`, risoluzione al microsecondo, riportati in **millisecondi con 3 decimali**.
+
+**Fasi** (`fasi_ms`), in ordine:
+
+| chiave | intervallo misurato |
+|---|---|
+| `lettura` | lettura del sorgente (`leggi_sorgente`) |
+| `analisi` | `parser::analizza` |
+| `compilazione` | `compiler::compila` |
+| `generazione_html` | `codegen::genera_html` |
+| `preparazione` | ricerca e verifica di ffmpeg, ricerca del browser, cartella temporanea, `scena.html`, percorsi, parziale |
+| `avvio_browser` | `Browser::avvia` + attesa di `DevToolsActivePort` |
+| `connessione_cdp` | `Sessione::connetti` (senza `Browser.getVersion`) |
+| `caricamento_pagina` | `prepara_pagina` (target, sessione, viewport, navigazione, `loadEventFired`, controllo `__joy_seek`) |
+| `avvio_ffmpeg` | `Ffmpeg::avvia` |
+| `ciclo_fotogrammi` | l'intero ciclo `k = 0…N−1` |
+| `chiusura_browser` | `Browser.close` + `chiudi` |
+| `finalizzazione_ffmpeg` | `Ffmpeg::finisci` (chiusura stdin, codifica residua, uscita) |
+| `pubblicazione` | rinomina del parziale + lettura della dimensione |
+| `totale` | dall'ingresso in `render_file` all'uscita (esclusi scrittura del JSON e stampa del rapporto) |
+
+**Per fotogramma** (`fotogramma_ms`), ognuna con `totale, media, min, p50, p95, max` (percentili
+*nearest-rank* sui valori ordinati in µs: `v[ceil(q·n) − 1]`):
+
+| chiave | intervallo |
+|---|---|
+| `seek` | andata e ritorno di `Runtime.evaluate` con `__joy_seek(t_k)` |
+| `screenshot` | andata e ritorno di `Page.captureScreenshot`: codifica PNG nel browser + trasferimento WebSocket + analisi JSON (misura **combinata**) |
+| `base64` | `base64::decodifica` |
+| `verifica_png` | `dimensioni_png` + confronto dimensioni |
+| `attesa_coda` | tempo dentro `Ffmpeg::invia` (bloccato se la coda di 4 è piena) |
+
+**ffmpeg** (`ffmpeg`): `scrittura_pipe_ms` (somma dei `write_all` nel thread di scrittura),
+`coda_capacita` (4), `fotogrammi_con_coda_piena` (invii che hanno trovato la coda piena: `try_send` →
+`Full`, poi `send` bloccante; comportamento invariato).
+
+**Dati** (`dati`): `byte_png_totali`, `byte_png_max`, `byte_base64_totali`.
+
+**Prestazioni** (`prestazioni`), con i tempi convertiti in secondi (`ms / 1000`):
+* `fps_ciclo = N / (ciclo_fotogrammi / 1000)`;
+* `fps_totale = N / (totale / 1000)`;
+* `rapporto_tempo_reale = (N / fps) / (totale / 1000)` (secondi di video per secondo di render).
+
+Se il denominatore è 0 o il risultato non è finito, il valore è `null` nel JSON e «non disponibile» nel
+rapporto (C.1.4, C.1.5).
+
+**Memoria** (`memoria`), distinguendo misura e stima:
+* `picco_processo_byte`: solo Linux, da `VmHWM` di `/proc/self/status` letto a fine render
+  (`picco_processo_fonte: "VmHWM"`); altrove `null` con `picco_processo_fonte: "non disponibile"` (su
+  Windows/macOS servirebbe codice `unsafe` o una dipendenza, entrambi vietati). Non comprende browser e
+  ffmpeg.
+* `stima_buffer_fotogrammi_byte = (coda_capacita + 2) × byte_png_max`: **stima** del limite superiore dei
+  PNG in memoria nel processo joypp (coda + uno in scrittura + uno in cattura).
+
+**Scena** (`scena`): `attori` (non gruppi), `gruppi`, `animazioni` (somma delle animazioni di
+`ScenaCompilata::attori`), `byte_html`, `durata_ms`.
+
+**Video** (`video`): `fotogrammi`, `larghezza`, `altezza` (finali), `fps`, `crf`, `preset` (`"medium"`),
+`byte`.
+
+**Ambiente** (`ambiente`): `joypp` (versione del pacchetto), `build` (`"debug"`/`"release"` da
+`cfg!(debug_assertions)`), `os`, `arch` (`std::env::consts`), `thread_logici` (`available_parallelism`,
+`null` se ignoto), `browser` (campo `product` di `Browser.getVersion`, o `null`), `ffmpeg` (prima riga di
+`-version` ripulita dai caratteri di controllo, o `null`). **Nessun percorso** (né eseguibili né file
+utente) nel JSON né nel rapporto.
+
+#### C.1.4 Formato JSON `joypp-profilo/1`
+Un oggetto, chiavi in quest'ordine fisso: `schema` (`"joypp-profilo/1"`), `ambiente`, `scena`, `video`,
+`fasi_ms`, `fotogramma_ms`, `ffmpeg`, `dati`, `prestazioni`, `memoria`. Numeri sempre finiti oppure
+`null` dove indicato (C.1.3); stringhe con l'escape di `json::stringa`. Aggiungere chiavi in futuro è
+compatibile; rinominarle o cambiarne il significato richiede `joypp-profilo/2`.
+
+#### C.1.5 Rapporto leggibile (stderr)
+Intestazione `Profilo del render (joypp X, build, os arch, N thread)`, poi sezioni Scena, Video, Fasi
+(tempo e quota % del totale), Per fotogramma (media/p50/p95/max), ffmpeg, Dati, Prestazioni, Memoria. Le
+righe stimate dicono esplicitamente «(stima)»; quelle non disponibili «non disponibile». Nessun percorso.
+
+#### C.1.6 Contratto Rust (in `src/exporter/`, proprietà di `@exporter`)
+* `render::OpzioniVideo { fps: Option<u32>, crf: u8, profilo: bool }`: `profilo` = misure attive.
+* `cli::ArgomentiRender { ingresso, uscita, video, profilo_testo: bool, profilo_json: Option<PathBuf> }`;
+  `interpreta` imposta `video.profilo = profilo_testo || profilo_json.is_some()`.
+* `render::EsitoVideo { …campi attuali…, profilo: Option<profilo::Profilo> }`: `Some` se e solo se
+  `opzioni.profilo`.
+* Nuovo modulo `render::profilo` con i tipi pubblici `Profilo`, `Ambiente`, `MisureScena`, `MisureVideo`,
+  `Fasi`, `PerFotogramma`, `Statistica`, `MisureFfmpeg`, `Dati`, `Prestazioni`, `Memoria` (campi = chiavi
+  JSON di C.1.3, durate come `f64` in ms), più (nel commit d'implementazione) `Profilo::testo() -> String`,
+  `Profilo::json() -> String`, `Statistica::da_microsecondi(&[u64]) -> Statistica` e
+  `verifica_percorso_profilo(sorgente: &Path, video: &Path, json: &Path) -> Risultato<()>`.
+* `ffmpeg::Ffmpeg::finisci` restituisce `Result<TempiFfmpeg, Errore>` con
+  `TempiFfmpeg { scrittura_pipe: Duration, coda_piena: u64 }` (uso interno a `render`).
+
+#### C.1.7 Test (`@debugger`)
+**Senza browser né ffmpeg** (sempre eseguiti da `cargo test`):
+* CLI: `--profilo` e `--profilo-json` con e senza `render`; valore mancante di `--profilo-json`;
+  `--profilo-json=x` rifiutato; opzione ripetuta (vale l'ultima); combinazione delle due opzioni; exit 2.
+* `Statistica::da_microsecondi`: percentili nearest-rank, lista vuota, un solo elemento.
+* `Profilo::json`: schema `joypp-profilo/1`, ordine fisso delle chiavi, `null` dove indicato, escape delle
+  stringhe, assenza di percorsi.
+* `Profilo::testo`: righe «(stima)» e «non disponibile»; nessun percorso.
+* `prestazioni`: `null` con denominatore 0 o risultato non finito.
+* `verifica_percorso_profilo`: conflitto con il sorgente e con il video (con la normalizzazione del
+  controllo «output uguale al sorgente»); percorso diverso accettato.
+* Non intrusività: senza profilo, gli argomenti di ffmpeg e i comandi CDP sono identici alla v0.2.1.
+
+**Con browser e ffmpeg** (saltati, come in B.9.9, se mancano):
+* render con `--profilo-json` su una scena minuscola: JSON valido, `video.fotogrammi = N`, schema
+  `joypp-profilo/1`;
+* nessun `<file>.joypp-parziale` residuo, né dopo un render riuscito né dopo un errore di scrittura del
+  JSON (per esempio una destinazione non scrivibile).

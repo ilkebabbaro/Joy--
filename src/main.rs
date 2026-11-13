@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! joypp <file.joy> [-o <file.html>] [--pretty] [--watch] [--senza-player]
-//! joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N]
+//! joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N] [--profilo] [--profilo-json <file.json>]
 //! ```
 //!
 //! L'interpretazione degli argomenti vive in `joypp::exporter::cli` (testata a parte) e il
@@ -42,6 +42,8 @@ joypp render — esporta la scena in un video MP4 (H.264, richiede un browser e 
       --fps <N>              fotogrammi al secondo, da 1 a 240 (predefinito: quello
                              dell'intestazione «a N fotogrammi», altrimenti 60)
       --crf <N>              qualità H.264, da 0 (senza perdita) a 51 (predefinito: 18)
+      --profilo              stampa su stderr il rapporto di diagnostica del render
+      --profilo-json <file>  scrive il rapporto di diagnostica in JSON (joypp-profilo/1)
   Non ammesse con render: --watch, --pretty, --senza-player.
   Il video ha le dimensioni del palco. Un file chiamato «render» si indica con ./render.
 

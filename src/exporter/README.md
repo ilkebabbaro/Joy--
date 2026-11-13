@@ -13,6 +13,18 @@ Collega la pipeline al file system.
 - Opzioni: percorso di output (`-o`), output leggibile (`--pretty`, default: compatto),
   `--watch`, `--senza-player` (B.5).
 
+**Contratto diagnostica render (v0.2.2, C.1 — in corso).**
+- `render::OpzioniVideo { fps, crf, profilo: bool }`: `profilo` = misure attive (`--profilo` o
+  `--profilo-json`). `Default`: `profilo: false`.
+- `render::EsitoVideo { …, profilo: Option<profilo::Profilo> }`: `Some` se e solo se
+  `OpzioniVideo::profilo` era attivo. In questo passo è sempre `None`.
+- Ramo provvisorio: con `profilo: true`, `render_file` restituisce subito l'errore
+  «la diagnostica --profilo non è ancora supportata» (exit 1). Le misure arrivano in un commit
+  successivo.
+- Decisione per il passo d'implementazione: il JSON si scrive in modo atomico, in
+  `<file>.joypp-parziale` nella stessa cartella, poi con `rename`. Il parziale si rimuove in caso
+  di errore.
+
 **Contratto (v0.2 blocco 2C).**
 - `Opzioni { leggibile: bool, senza_player: bool }` (entrambi `false` di default). Si traduce
   in `codegen::OpzioniHtml { leggibile, player: !senza_player }`.
@@ -34,6 +46,9 @@ Funzione pura `interpreta(args) -> Result<Comando, Errore>` con `Comando::{Compi
 Versione}`. `render` è un sottocomando solo se è il **primo** argomento ed è esattamente quella
 parola (`./render` e `render.joy` sono file). `--fps` (1-240) e `--crf` (0-51) accettano solo cifre
 decimali; `--watch`, `--pretty`, `--senza-player` sono vietati con `render`, `--fps`/`--crf` senza.
+`--profilo` (flag) e `--profilo-json <file>` (valore nell'argomento successivo) valgono solo con
+`render`; `ArgomentiRender` porta `profilo_testo: bool` e `profilo_json: Option<PathBuf>`, e
+`video.profilo = profilo_testo || profilo_json.is_some()`. Le ripetizioni valgono l'ultima.
 Ogni errore è d'uso (exit code 2, seguito dall'aiuto).
 
 ## `render/` — `joypp render` (SPECIFICA B.9)
@@ -43,6 +58,7 @@ fotogramma → `ffmpeg` (H.264 `yuv420p`, BT.709) → `.mp4`. Solo libreria stan
 | Modulo | Compito |
 |--------|---------|
 | `mod.rs` | API (`OpzioniVideo`, `EsitoVideo`, `Evento`, `render_file`); funzioni pure: `fps_effettivo`, `numero_fotogrammi`, `istante`, `pianifica` (controlli e limiti di B.9.7), `url_file`, `dimensioni_png`, `sfondo_su_nero`; guardie `Drop` per cartella temporanea e file parziale; costanti in `render::limiti` |
+| `profilo.rs` | tipi della diagnostica `--profilo` / `--profilo-json` (schema `joypp-profilo/1`): `Profilo`, `Ambiente`, `MisureScena`, `MisureVideo`, `Fasi`, `PerFotogramma`, `Statistica`, `MisureFfmpeg`, `Dati`, `Prestazioni`, `Memoria`. Solo dati, senza formattazione |
 | `browser.rs` | ricerca (`JOYPP_BROWSER`, percorsi standard, `PATH`; funzione pura con ambiente iniettato), argomenti di avvio, attesa di `DevToolsActivePort`, stderr ripulito, `Drop` = kill + wait |
 | `cdp.rs` | sessione CDP: comandi con `id`, risposte, coda di eventi, timeout per operazione |
 | `websocket.rs` | handshake HTTP, frame mascherati, lunghezze 7/16/64 bit, frammentazione, ping/pong/close |
