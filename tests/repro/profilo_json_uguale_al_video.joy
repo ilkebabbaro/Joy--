@@ -1,0 +1,10 @@
+# atteso: ok
+# Regressione B1 (C.1.1): con il comando
+#   joypp render tests/repro/profilo_json_uguale_al_video.joy -o out.mp4 --profilo-json ./out.mp4
+# il JSON sovrascriveva il video appena pubblicato (exit 0). Atteso: exit 1,
+# «il file del profilo deve essere diverso dal sorgente e dal video», nessun out.mp4.
+# Varianti: ./OUT.MP4 (solo Windows), nuova/../out.mp4. Test: tests/profilo.rs.
+Prepara un palco grande 64 per 36 con sfondo #0F172A.
+Crea un cerchio chiamato "a" con raggio 10 e colore #F59E0B al centro.
+Dal secondo 0 al secondo 0.5:
+  "a" appare sfumando.
