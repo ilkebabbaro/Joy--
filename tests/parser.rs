@@ -160,7 +160,6 @@ fn tipi_futuri_non_supportati() {
     for frase in [
         "Crea una linea chiamata \"l\".\n",
         "Crea un'immagine chiamata \"i\".\n",
-        "Crea un gruppo chiamato \"g\".\n",
         "Crea 5000 particelle chiamate \"neve\".\n",
     ] {
         let e = errore(&con_palco(frase));
@@ -323,10 +322,14 @@ fn verbo_sconosciuto_con_suggerimento() {
 
 #[test]
 fn verbi_futuri_non_supportati() {
-    let src = con_palco(
-        "Crea un cerchio chiamato \"a\".\nDal secondo 0 al secondo 1:\n  \"a\" orbita attorno a \"b\" con raggio 2 per 1 giri.\n",
-    );
-    assert!(errore(&src).messaggio.contains("non è ancora supportato"));
+    // `orbita` e `cambia colore` sono ora supportati (v0.2, B.4): restano futuri gli altri verbi.
+    for verbo in ["trema", "fluttua", "gira", "lascia una scia"] {
+        let src = con_palco(&format!(
+            "Crea un cerchio chiamato \"a\".\nDal secondo 0 al secondo 1:\n  \"a\" {verbo}.\n"
+        ));
+        let e = errore(&src);
+        assert!(e.messaggio.contains("non è ancora supportato"), "{verbo}: {e}");
+    }
 }
 
 // ------------------------------------------------------------ struttura file

@@ -1,0 +1,26 @@
+# Sistema orbitale (v0.2): gruppi annidati, entra da / esce verso, orbita e cambia colore.
+# Il centro di un'orbita e' statico: per far girare la luna attorno a una terra che si muove,
+# terra e luna stanno nel sottogruppo "pianeta", che e' il gruppo a orbitare attorno al sole.
+# Il pivot di "pianeta" e' a x = 854 (AABB 822-886): distanza dal sole 214, uguale al raggio.
+Prepara un palco grande 1280 per 720 con sfondo #0F172A a 60 fotogrammi.
+
+Crea un cerchio chiamato "sole" con raggio 60 e colore #F59E0B al centro.
+Crea un cerchio chiamato "terra" con raggio 18 e colore #38BDF8 a destra di "sole" di 200.
+Crea un cerchio chiamato "luna" con raggio 6 e colore #E2E8F0 a destra di "terra" di 40.
+Crea un gruppo chiamato "pianeta" con "terra" e "luna".
+Crea un gruppo chiamato "sistema" con "sole" e "pianeta".
+Crea un titolo chiamato "titolo" con testo "SISTEMA ORBITALE", grandezza 36 e colore bianco in alto.
+
+Dal secondo 0 al secondo 1.5:
+  "sistema" entra da sinistra con movimento scatto.
+  "titolo" entra dall'alto con movimento morbido.
+
+Dal secondo 1.5 al secondo 7.5:
+  "pianeta" orbita attorno a "sole" con raggio 214 per 2 giri in senso orario con movimento lineare.
+  "luna" orbita attorno a "terra" con raggio 40 per 6 giri con movimento lineare.
+  "sole" cambia colore in #FDE68A con movimento morbido.
+  "titolo" cambia colore in #38BDF8.
+
+Poi per 1.5 secondi:
+  "sistema" esce verso destra con movimento morbido.
+  "titolo" esce verso l'alto.
