@@ -183,8 +183,11 @@ specifica lascia aperte, così che il comportamento del compilatore sia determin
   (nell'ordine del file); `Dopo A secondi per D secondi:` aggiunge un'attesa A.
 * Due azioni dello stesso attore che agiscono sulla stessa grandezza (opacità, posizione, scala,
   rotazione) **non** possono sovrapporsi nel tempo: è un errore di compilazione.
-* `appare sfumando` porta l'opacità al valore dichiarato dall'attore (default 1.0); se è la prima
-  azione di opacità dell'attore, l'attore parte invisibile.
+* `appare sfumando` porta l'opacità al valore dichiarato dall'attore (default 1.0) se è maggiore
+  di 0; se l'opacità dichiarata è `0`, la porta a `1` (come dice il §5, «opacità → 1»). Se è la
+  prima azione di opacità dell'attore, l'attore parte invisibile.
+  *Modificato in v0.2.1: prima andava al valore dichiarato anche se 0, quindi un attore creato con
+  `opacità 0` e animato con `appare sfumando` restava invisibile.*
 * `ruota di N gradi` e `scivola verso` sono relativi allo stato raggiunto; `si sposta a` è assoluto.
 * `con movimento X` in fondo alla riga vale anche per le azioni precedenti della stessa riga
   che non ne specificano uno. Il movimento predefinito è `morbido`.
@@ -493,7 +496,9 @@ Si parte da un riquadro in coordinate relative a `P`, poi si applica la trasform
   sono espresse nel sistema del gruppo **non trasformato**, cioè in coordinate del palco come se il
   gruppo fosse fermo, con scala 1 e rotazione 0 (B.0.2).
 * **Azioni ammesse su un gruppo:** opacità, traslazione (incluse `entra da`, `esce verso`, `orbita`),
-  rotazione, scala. `appare sfumando` su un gruppo lo fa partire invisibile, come per un attore (A.3).
+  rotazione, scala. `appare sfumando` su un gruppo lo fa partire invisibile, come per un attore (A.3),
+  e porta l'opacità del gruppo a quella dichiarata nella sua frase, oppure a `1` se è `0`
+  (*modificato in v0.2.1: prima andava al valore dichiarato anche se 0*).
   `cambia colore` non è ammesso (B.3.8).
 * **Annidamento:** sì, fino a `MAX_PROFONDITA_GRUPPI = 16` livelli. Un gruppo di primo livello ha
   profondità 1.
@@ -722,6 +727,43 @@ cambia nulla di ciò che si vede):
   il suggerimento `togli «rotazione …» dalla creazione del cerchio`.
 * Non producono l'avviso: `ruota` su un gruppo che contiene cerchi, `orbita` su un cerchio (è una
   traslazione).
+
+**Avviso «opacità invariata»** (*aggiunto in v0.2.1*): un'azione sul canale `opacita` che non
+cambia il valore è quasi sempre una svista (es. un attore che dovrebbe comparire ma è già visibile).
+* **Condizione:** per ogni segmento del canale `opacita` di un attore o di un gruppo, in ordine di
+  inizio, si confrontano il valore **corrente** all'inizio del segmento e il valore di **arrivo**
+  dell'azione. Se `|arrivo − corrente| < 1e-9`, l'azione produce l'avviso, alla riga dell'azione.
+  * Il valore corrente del primo segmento è l'opacità iniziale del canale: `0` se il primo segmento
+    è `appare sfumando` (A.3), altrimenti l'opacità dichiarata (default 1). Per i segmenti successivi
+    è il valore di arrivo del segmento precedente sullo stesso canale: i segmenti non si
+    sovrappongono (B.0.1) e tra due segmenti il valore resta fermo, anche se il successivo inizia
+    nell'istante esatto in cui finisce il precedente.
+  * Arrivo: `appare sfumando` → opacità dichiarata, o 1 se è 0 (A.3); `scompare sfumando` → 0;
+    `cambia opacità a X` → X.
+* **Testo** (`V` è il valore di arrivo, scritto come gli altri numeri dei messaggi: `1`, `0.6`, `0`;
+  `"x"` è il nome dell'attore o del gruppo):
+  * `appare sfumando`:
+    `Avviso alla riga N: "x" appare sfumando ma la sua opacità è già V: l'azione non cambia nulla`
+    `  Suggerimento: togli «appare sfumando», oppure fallo prima scomparire con «scompare sfumando»`
+  * `scompare sfumando`:
+    `Avviso alla riga N: "x" scompare sfumando ma la sua opacità è già 0: l'azione non cambia nulla`
+    `  Suggerimento: togli «scompare sfumando», oppure fallo prima apparire con «appare sfumando»`
+  * `cambia opacità a`:
+    `Avviso alla riga N: "x" cambia opacità a V ma la sua opacità è già V: l'azione non cambia nulla`
+    `  Suggerimento: togli «cambia opacità a …», oppure scegli un valore diverso da quello attuale`
+* **Esempi che producono l'avviso:** due `appare sfumando` di seguito sullo stesso attore (sul
+  secondo); `scompare sfumando` su un attore già scomparso o creato con `opacità 0`;
+  `cambia opacità a 1` come prima azione di opacità di un attore con l'opacità predefinita.
+* **Non producono l'avviso:**
+  * `appare sfumando` come **prima** azione di opacità: parte da 0 e arriva a un valore > 0
+    (anche con `opacità 0`, che con la regola di A.3 va da 0 a 1);
+  * le azioni sugli altri canali dello stesso attore (`scivola`, `si ingrandisce`, …), anche nella
+    stessa riga: si confronta solo il canale `opacita`;
+  * le azioni di opacità di un membro rispetto a quella del gruppo e viceversa: il gruppo e i suoi
+    membri hanno canali indipendenti (B.0.1), quindi l'avviso guarda solo l'opacità **propria**
+    dell'attore o del gruppo, non quella risultante dalla moltiplicazione (B.3.5). Esempio: un
+    membro che appare dentro un gruppo invisibile non produce l'avviso, e nemmeno un gruppo che
+    appare con i membri già visibili.
 
 ---
 
