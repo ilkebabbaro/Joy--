@@ -1,0 +1,14 @@
+# atteso: ok
+# v0.2.1: `opacità 0` + `appare sfumando` lasciava l'attore invisibile (da 0 a 0); ora va a 1, senza avvisi.
+# Ricavato da examples/sfida_hyperframe_20s.joy.
+Prepara un palco grande 400 per 200.
+Crea un testo chiamato "a" con testo "uno", opacità 0 a 100, 100.
+Crea un testo chiamato "b" con testo "due", opacità 0 a 200, 100.
+Crea un rettangolo chiamato "c" con larghezza 50, altezza 20, opacità 0 a 300, 100.
+Crea un gruppo chiamato "g" con "a" e "b", opacità 0.
+Dal secondo 0 al secondo 1:
+  "g" appare sfumando.
+  "c" appare sfumando.
+Dal secondo 1 al secondo 2:
+  "a" appare sfumando.
+  "b" appare sfumando e scivola verso alto di 10.
