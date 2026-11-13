@@ -17,5 +17,5 @@ pub mod exporter;
 pub mod parser;
 pub mod security;
 
-pub use errore::{Errore, Risultato};
+pub use errore::{Avviso, Errore, Risultato};
 pub use exporter::{Opzioni, compila_sorgente};

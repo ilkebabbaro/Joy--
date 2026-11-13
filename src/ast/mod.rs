@@ -112,6 +112,12 @@ pub struct Stile {
     pub livello: i32,
     /// Bordo opzionale: spessore in pixel e colore.
     pub bordo: Option<(f64, Colore)>,
+    /// Scala iniziale `s0` (`scala [N]`, SPECIFICA B.1): fattore ≥ 0, predefinito 1.0.
+    /// È il valore del canale `scala` a `t = 0`.
+    pub scala: f64,
+    /// Rotazione iniziale `r0` in gradi (`rotazione [GRADI]`, SPECIFICA B.1), predefinita 0.0.
+    /// Non viene normalizzata: è il valore del canale `rotazione` a `t = 0`.
+    pub rotazione: f64,
 }
 
 impl Default for Stile {
@@ -121,6 +127,8 @@ impl Default for Stile {
             opacita: 1.0,
             livello: 0,
             bordo: None,
+            scala: 1.0,
+            rotazione: 0.0,
         }
     }
 }

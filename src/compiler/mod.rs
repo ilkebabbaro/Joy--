@@ -3,13 +3,16 @@
 //! Qui avvengono tutte le decisioni "intelligenti": validazione semantica, risoluzione
 //! delle posizioni relative, ancoraggio dei blocchi temporali relativi e pre-calcolo
 //! dei keyframe per ogni canale di animazione. Il generatore si limita a stampare.
+//!
+//! Oltre agli errori (bloccanti), il compilatore raccoglie gli [`Avviso`] non bloccanti
+//! di SPECIFICA B.6 nel campo [`ScenaCompilata::avvisi`].
 
 pub mod easing;
 
 use std::collections::HashMap;
 
 use crate::ast::{Ancora, Attore, Colore, Easing, Forma, Posizione, Programma, Stile, Tempo, Verbo};
-use crate::errore::{Errore, Risultato};
+use crate::errore::{Avviso, Errore, Risultato};
 use crate::parser::suggerisci;
 use crate::security::{limiti, valida_nome_font};
 use easing::{Curva, curva};
@@ -35,6 +38,9 @@ pub struct ScenaCompilata {
     pub durata: f64,
     /// Attori nell'ordine di creazione.
     pub attori: Vec<AttoreCompilato>,
+    /// Avvisi non bloccanti (SPECIFICA B.6), ordinati per riga crescente e senza
+    /// duplicati (stessa riga e stesso messaggio compaiono una volta sola).
+    pub avvisi: Vec<Avviso>,
 }
 
 /// Attore con posizione assoluta risolta e animazioni pre-calcolate.
@@ -54,6 +60,12 @@ pub struct AttoreCompilato {
     pub y: f64,
     /// Opacità a inizio scena.
     pub opacita_iniziale: f64,
+    /// Scala a inizio scena (`s0`, SPECIFICA B.1). Se ≠ 1 il generatore la emette come
+    /// `scale` nella regola statica del wrapper `#aN`.
+    pub scala_iniziale: f64,
+    /// Rotazione a inizio scena in gradi (`r0`, SPECIFICA B.1). Se ≠ 0 il generatore la
+    /// emette come `rotate` nella regola statica del wrapper `#aN`.
+    pub rotazione_iniziale: f64,
     /// Animazioni, al massimo una per canale.
     pub animazioni: Vec<Animazione>,
 }
@@ -168,7 +180,14 @@ struct Segmento {
     riga: usize,
 }
 
+/// Messaggio dell'avviso «rotazione invisibile su un cerchio» (SPECIFICA B.6).
+fn messaggio_cerchio_ruotato(nome: &str) -> String {
+    format!("\"{nome}\" è un cerchio: la rotazione non cambia il suo aspetto")
+}
+
 /// Compila un [`Programma`] in una [`ScenaCompilata`].
+///
+/// Gli avvisi non bloccanti (SPECIFICA B.6) sono restituiti in [`ScenaCompilata::avvisi`].
 ///
 /// # Errori
 /// Errori semantici (attori sconosciuti o duplicati, posizioni circolari, azioni
@@ -191,9 +210,16 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
         )));
     }
 
+    let mut avvisi = Vec::new();
     let mut indici: HashMap<&str, usize> = HashMap::new();
     for (i, attore) in programma.attori.iter().enumerate() {
         valida_attore(attore)?;
+        if matches!(attore.forma, Forma::Cerchio { .. }) && attore.stile.rotazione != 0.0 {
+            avvisi.push(
+                Avviso::alla_riga(attore.riga, messaggio_cerchio_ruotato(&attore.nome))
+                    .con_suggerimento("togli «rotazione …» dalla creazione del cerchio"),
+            );
+        }
         if let Some(&precedente) = indici.get(attore.nome.as_str()) {
             return Err(Errore::alla_riga(
                 attore.riga,
@@ -208,7 +234,7 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
     }
 
     let posizioni = risolvi_posizioni(programma, &indici)?;
-    let (segmenti, durata) = costruisci_segmenti(programma, &indici, &posizioni)?;
+    let (segmenti, durata) = costruisci_segmenti(programma, &indici, &posizioni, &mut avvisi)?;
 
     let mut attori = Vec::with_capacity(programma.attori.len());
     for (i, ((attore, (x, y)), canali)) in programma
@@ -233,8 +259,9 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
                     }
                     [opacita_iniziale, 0.0]
                 }
-                Canale::Traslazione | Canale::Rotazione => [0.0, 0.0],
-                Canale::Scala => [1.0, 0.0],
+                Canale::Traslazione => [0.0, 0.0],
+                Canale::Rotazione => [attore.stile.rotazione, 0.0],
+                Canale::Scala => [attore.stile.scala, 0.0],
             };
             animazioni.push(Animazione {
                 canale,
@@ -250,9 +277,15 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
             x,
             y,
             opacita_iniziale,
+            scala_iniziale: attore.stile.scala,
+            rotazione_iniziale: attore.stile.rotazione,
             animazioni,
         });
     }
+
+    // Ordinamento stabile: a parità di riga resta l'ordine di rilevazione.
+    avvisi.sort_by_key(|a| a.riga);
+    avvisi.dedup_by(|b, a| a.riga == b.riga && a.messaggio == b.messaggio);
 
     Ok(ScenaCompilata {
         larghezza: palco.larghezza,
@@ -261,6 +294,7 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
         fps: palco.fps,
         durata,
         attori,
+        avvisi,
     })
 }
 
@@ -309,12 +343,42 @@ fn valida_attore(attore: &Attore) -> Risultato<()> {
     if let Some((spessore, _)) = attore.stile.bordo {
         dimensione("lo spessore del bordo", spessore)?;
     }
+    let (scala, rotazione) = (attore.stile.scala, attore.stile.rotazione);
+    if scala < 0.0 {
+        return Err(Errore::alla_riga(riga, "la scala iniziale non può essere negativa")
+            .con_suggerimento("usa un valore da 0 in su, es. «scala 0.5»"));
+    }
+    // `contains` è falso anche per NaN e infiniti: anche quelli sono rifiutati.
+    if !(0.0..=limiti::MAX_SCALA).contains(&scala) {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("la scala iniziale è troppo grande (massimo {})", limiti::MAX_SCALA),
+        ));
+    }
+    if !(-limiti::MAX_GRADI..=limiti::MAX_GRADI).contains(&rotazione) {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("la rotazione iniziale è troppo grande (massimo {} gradi)", limiti::MAX_GRADI),
+        ));
+    }
     Ok(())
 }
 
-fn indice_attore(nome: &str, indici: &HashMap<&str, usize>, riga: usize) -> Risultato<usize> {
+/// Cerca l'indice dell'attore `nome`; se non esiste, l'errore suggerisce il nome più simile.
+///
+/// `escludi` è il nome dell'attore che si sta posizionando: non viene mai proposto nel
+/// suggerimento «forse intendevi …?», perché un attore non può riferirsi a sé stesso.
+fn indice_attore(
+    nome: &str,
+    indici: &HashMap<&str, usize>,
+    riga: usize,
+    escludi: Option<&str>,
+) -> Risultato<usize> {
     indici.get(nome).copied().ok_or_else(|| {
-        let nomi: Vec<&str> = indici.keys().copied().collect();
+        // Ordinati: il suggerimento non deve dipendere dall'ordine della HashMap.
+        let mut nomi: Vec<&str> =
+            indici.keys().copied().filter(|n| Some(*n) != escludi).collect();
+        nomi.sort_unstable();
         let e = Errore::alla_riga(riga, format!("non esiste nessun attore chiamato \"{nome}\""));
         match suggerisci(nome, &nomi) {
             Some(s) => e.con_suggerimento(format!("forse intendevi \"{s}\"?")),
@@ -364,7 +428,8 @@ fn risolvi_posizioni(
             catena.push(corrente);
             match &attori[corrente].posizione {
                 Posizione::Relativa { riferimento, .. } => {
-                    corrente = indice_attore(riferimento, indici, attori[corrente].riga)?;
+                    let attore = &attori[corrente];
+                    corrente = indice_attore(riferimento, indici, attore.riga, Some(&attore.nome))?;
                 }
                 _ => break,
             }
@@ -388,7 +453,7 @@ fn risolvi_posizioni(
                     (l * fx, h * fy)
                 }
                 Posizione::Relativa { direzione, riferimento, distanza } => {
-                    let k = indice_attore(riferimento, indici, attore.riga)?;
+                    let k = indice_attore(riferimento, indici, attore.riga, Some(&attore.nome))?;
                     let (rx, ry) = risolte[k].ok_or_else(|| {
                         Errore::alla_riga(attore.riga, "posizione relativa non risolvibile")
                     })?;
@@ -415,6 +480,7 @@ fn costruisci_segmenti(
     programma: &Programma,
     indici: &HashMap<&str, usize>,
     posizioni: &[(f64, f64)],
+    avvisi: &mut Vec<Avviso>,
 ) -> Risultato<(Vec<SegmentiPerCanale>, f64)> {
     let canali = [Canale::Opacita, Canale::Traslazione, Canale::Rotazione, Canale::Scala];
     let mut per_attore: Vec<SegmentiPerCanale> = programma
@@ -443,7 +509,7 @@ fn costruisci_segmenti(
         durata = durata.max(fine);
 
         for azione in &blocco.azioni {
-            let i = indice_attore(&azione.attore, indici, azione.riga)?;
+            let i = indice_attore(&azione.attore, indici, azione.riga, None)?;
             let attore = &programma.attori[i];
             let (x0, y0) = posizioni[i];
             let errore = |m: String| Errore::alla_riga(azione.riga, m);
@@ -475,6 +541,14 @@ fn costruisci_segmenti(
                 Verbo::Ruota(gradi) => {
                     if gradi.abs() > limiti::MAX_GRADI {
                         return Err(errore(format!("rotazione troppo grande (massimo {} gradi)", limiti::MAX_GRADI)));
+                    }
+                    if matches!(attore.forma, Forma::Cerchio { .. }) {
+                        avvisi.push(
+                            Avviso::alla_riga(azione.riga, messaggio_cerchio_ruotato(&attore.nome))
+                                .con_suggerimento(
+                                    "togli «ruota di …», oppure usa un quadrato o un rettangolo se vuoi vederlo girare",
+                                ),
+                        );
                     }
                     (Canale::Rotazione, Effetto::Delta([gradi, 0.0]), false)
                 }
@@ -517,7 +591,7 @@ fn controlla_sovrapposizioni(nome: &str, canale: Canale, segmenti: &[Segmento]) 
                     b.riga
                 ),
             )
-            .con_suggerimento("sposta una delle due azioni in un blocco successivo, es. «Poi per 1 secondi:»"));
+            .con_suggerimento("sposta una delle due azioni in un blocco successivo, es. «Poi per 1 secondo:»"));
         }
     }
     Ok(())
@@ -597,4 +671,151 @@ fn genera_keyframe(
     }
     acc.aggiungi(durata, corrente, None)?;
     Ok(acc.keyframe)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::parser::analizza;
+
+    const PALCO: &str = "Prepara un palco grande 400 per 300.\n";
+
+    /// Analizza il sorgente e applica `modifica` all'AST: il parser non conosce
+    /// ancora le proprietà `scala` e `rotazione` di B.1.
+    fn programma(corpo: &str, modifica: impl FnOnce(&mut Programma)) -> Programma {
+        let mut p = analizza(&format!("{PALCO}{corpo}")).unwrap();
+        modifica(&mut p);
+        p
+    }
+
+    fn keyframe(scena: &ScenaCompilata, attore: usize, canale: Canale) -> Vec<Valore> {
+        scena.attori[attore]
+            .animazioni
+            .iter()
+            .find(|a| a.canale == canale)
+            .unwrap()
+            .keyframe
+            .iter()
+            .map(|k| k.valore)
+            .collect()
+    }
+
+    #[test]
+    fn stato_iniziale_predefinito() {
+        let s = compila(&programma("Crea un quadrato chiamato \"q\" al centro.\n", |_| {})).unwrap();
+        assert_eq!(s.attori[0].scala_iniziale, 1.0);
+        assert_eq!(s.attori[0].rotazione_iniziale, 0.0);
+        assert!(s.avvisi.is_empty());
+    }
+
+    #[test]
+    fn stato_iniziale_dichiarato_entra_nei_canali() {
+        let p = programma(
+            "Crea un quadrato chiamato \"q\" al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"q\" ruota di 90 gradi.\n\
+             \x20 \"q\" si ingrandisce fino a 2.\n",
+            |p| {
+                p.attori[0].stile.scala = 0.0;
+                p.attori[0].stile.rotazione = 45.0;
+            },
+        );
+        let s = compila(&p).unwrap();
+        assert_eq!(s.attori[0].scala_iniziale, 0.0);
+        assert_eq!(s.attori[0].rotazione_iniziale, 45.0);
+        // `ruota di` è relativo, `si ingrandisce` è assoluto.
+        let r = keyframe(&s, 0, Canale::Rotazione);
+        assert_eq!(r.first(), Some(&Valore::Rotazione(45.0)));
+        assert_eq!(r.last(), Some(&Valore::Rotazione(135.0)));
+        let k = keyframe(&s, 0, Canale::Scala);
+        assert_eq!(k.first(), Some(&Valore::Scala(0.0)));
+        assert_eq!(k.last(), Some(&Valore::Scala(2.0)));
+    }
+
+    #[test]
+    fn pulsa_attorno_alla_scala_iniziale() {
+        let corpo = "Crea un quadrato chiamato \"q\" al centro.\n\
+                     Dal secondo 0 al secondo 1:\n\
+                     \x20 \"q\" pulsa con intensità 2 a ritmo 60.\n";
+        let s = compila(&programma(corpo, |p| p.attori[0].stile.scala = 2.0)).unwrap();
+        let k = keyframe(&s, 0, Canale::Scala);
+        assert_eq!(k.first(), Some(&Valore::Scala(2.0)));
+        assert!(k.contains(&Valore::Scala(3.0)));
+        // Con base 0 la pulsazione resta a 0, senza errore.
+        let s = compila(&programma(corpo, |p| p.attori[0].stile.scala = 0.0)).unwrap();
+        assert!(keyframe(&s, 0, Canale::Scala).iter().all(|v| *v == Valore::Scala(0.0)));
+    }
+
+    #[test]
+    fn errori_stato_iniziale() {
+        let crea = "Crea un quadrato chiamato \"q\" al centro.\n";
+        let e = compila(&programma(crea, |p| p.attori[0].stile.scala = -0.5)).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "Errore alla riga 2: la scala iniziale non può essere negativa\n  \
+             Suggerimento: usa un valore da 0 in su, es. «scala 0.5»"
+        );
+        let e = compila(&programma(crea, |p| p.attori[0].stile.scala = 1000.5)).unwrap_err();
+        assert_eq!(e.messaggio, "la scala iniziale è troppo grande (massimo 1000)");
+        let e = compila(&programma(crea, |p| p.attori[0].stile.rotazione = -360_001.0)).unwrap_err();
+        assert_eq!(e.messaggio, "la rotazione iniziale è troppo grande (massimo 360000 gradi)");
+        assert_eq!(e.riga, Some(2));
+        assert!(compila(&programma(crea, |p| p.attori[0].stile.scala = f64::NAN)).is_err());
+    }
+
+    #[test]
+    fn avvisi_rotazione_su_cerchio() {
+        let p = programma(
+            "Crea un cerchio chiamato \"c\" al centro.\n\
+             Crea un quadrato chiamato \"q\" al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"c\" ruota di 90 gradi.\n\
+             \x20 \"q\" ruota di 90 gradi.\n",
+            |p| {
+                p.attori[0].stile.rotazione = 10.0;
+                p.attori[1].stile.rotazione = 10.0;
+            },
+        );
+        let s = compila(&p).unwrap();
+        let testi: Vec<String> = s.avvisi.iter().map(ToString::to_string).collect();
+        assert_eq!(
+            testi,
+            [
+                "Avviso alla riga 2: \"c\" è un cerchio: la rotazione non cambia il suo aspetto\n  \
+                 Suggerimento: togli «rotazione …» dalla creazione del cerchio",
+                "Avviso alla riga 5: \"c\" è un cerchio: la rotazione non cambia il suo aspetto\n  \
+                 Suggerimento: togli «ruota di …», oppure usa un quadrato o un rettangolo se vuoi vederlo girare",
+            ]
+        );
+    }
+
+    #[test]
+    fn avvisi_ordinati_e_deduplicati() {
+        let p = programma(
+            "Crea un cerchio chiamato \"c\" al centro.\n\
+             Dal secondo 0 al secondo 1:\n\
+             \x20 \"c\" ruota di 90 gradi.\n\
+             Dal secondo 1 al secondo 2:\n\
+             \x20 \"c\" ruota di 90 gradi.\n\
+             Dal secondo 2 al secondo 3:\n\
+             \x20 \"c\" ruota di 90 gradi.\n",
+            |p| {
+                // Righe forzate: 9, 4, 4 → attesi due avvisi, alle righe 4 e 9.
+                for (blocco, riga) in p.timeline.blocchi.iter_mut().zip([9, 4, 4]) {
+                    blocco.azioni[0].riga = riga;
+                }
+            },
+        );
+        let s = compila(&p).unwrap();
+        let righe: Vec<usize> = s.avvisi.iter().map(|a| a.riga).collect();
+        assert_eq!(righe, [4, 9]);
+    }
+
+    #[test]
+    fn suggerimento_non_propone_l_attore_stesso() {
+        let p = programma("Crea un cerchio chiamato \"a\" a destra di \"b\" di 10.\n", |_| {});
+        let e = compila(&p).unwrap_err();
+        assert_eq!(e.messaggio, "non esiste nessun attore chiamato \"b\"");
+        assert_ne!(e.suggerimento.as_deref(), Some("forse intendevi \"a\"?"));
+    }
 }
