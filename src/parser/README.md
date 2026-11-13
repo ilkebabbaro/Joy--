@@ -35,4 +35,23 @@ Il parser non usa mai `unwrap()`/`panic!`: qualsiasi input malformato produce un
 - Valgono per ogni tipo di attore. Se il numero manca l'errore è «mi aspettavo un numero dopo «scala»» (o «rotazione»), prodotto da `numero_dopo`.
 - I limiti sui valori sono validati dal compilatore, non dal parser.
 
+## Gruppi e nuovi verbi (v0.2, blocco 2B)
+
+- **Gruppo** (`Crea un gruppo chiamato "G" con "A", "B" e "C" [proprietà].`, B.3.2): `Parser::gruppo`.
+  I membri sono letti subito dopo `con`, separati da `,` o `e`/`ed` (anche combinati); la lista
+  finisce al primo elemento che non è una stringa. Poi solo `opacità`, `livello`, `scala`,
+  `rotazione` (helper `proprieta_stile`, condiviso con gli attori). Posizione propria,
+  `dentro a`, altre proprietà, lista vuota e stringhe dopo le proprietà sono errori sintattici
+  (B.3.8). Esistenza dei membri, duplicati e profondità spettano al compilatore.
+  La `posizione` prodotta è sempre `Palco(Centro)`.
+- **`entra da` / `esce verso`** (B.2): il lexer spezza `dall'alto` in `dall` + `alto`, perciò dopo
+  `entra` si accettano `da`, `dal`, `dall`, `dalla`; `l'alto` diventa `alto` (articolo scartato).
+- **`orbita attorno a "X" con raggio N per G giri|giro [in senso orario|antiorario]`** (B.4.1):
+  nessuna ambiguità tra `con raggio` e `con movimento`, perché `con` dopo il nome è sempre
+  seguito da `raggio` (ordine fisso) e `easing_opzionale` guarda solo `con movimento`.
+  Verso omesso = antiorario.
+- **`cambia colore in COLORE`** (B.4.2): riusa `Frase::colore`.
+- `VERBI_FUTURI` contiene ormai solo verbi non ancora supportati (`trema`, `fluttua`, ...).
+  `entra`, `esce` e `orbita` sono tra i candidati di «forse intendevi».
+
 - Il lexer rifiuta i caratteri invisibili/bidirezionali ("Trojan Source") tramite `security::carattere_non_ammesso`, mostrando solo il codice escape (es. `\u{202e}`).

@@ -58,10 +58,10 @@ const EASING: &[(&str, Easing)] = &[
 ];
 
 const VERBI_SUPPORTATI: &[&str] = &[
-    "appare", "scompare", "si", "scivola", "ruota", "pulsa", "cambia",
+    "appare", "scompare", "si", "scivola", "ruota", "pulsa", "cambia", "entra", "esce", "orbita",
 ];
 const VERBI_FUTURI: &[&str] = &[
-    "orbita", "trema", "fluttua", "lascia", "gira", "raggiunge", "passa", "esplode", "viene",
+    "trema", "fluttua", "lascia", "gira", "raggiunge", "passa", "esplode", "viene",
     "cade",
 ];
 const PROPRIETA: &[&str] = &[
@@ -506,9 +506,9 @@ impl<'a> Frase<'a> {
                 )));
             }
         };
-        const TIPI: &[&str] = &["cerchio", "rettangolo", "quadrato", "testo", "titolo"];
+        const TIPI: &[&str] = &["cerchio", "rettangolo", "quadrato", "testo", "titolo", "gruppo"];
         if !TIPI.contains(&tipo) {
-            if ["linea", "immagine", "gruppo", "particelle"].contains(&tipo) {
+            if ["linea", "immagine", "particelle"].contains(&tipo) {
                 return Err(self.non_supportato(&format!("il tipo «{tipo}»")));
             }
             let mut e = self.errore(format!("tipo di attore sconosciuto «{tipo}»"));
@@ -527,6 +527,9 @@ impl<'a> Frase<'a> {
         if nome.is_empty() {
             return Err(self.errore("il nome dell'attore non può essere vuoto"));
         }
+        if tipo == "gruppo" {
+            return self.gruppo(nome);
+        }
 
         let mut p = Proprieta::default();
         let mut stile = Stile::default();
@@ -539,6 +542,9 @@ impl<'a> Frase<'a> {
             }
             if self.accetta_una(&["e", "ed", "con"]).is_some() {
                 continue;
+            }
+            if self.peek_parola_a(0) == Some("dentro") {
+                return Err(self.errore_dentro());
             }
             if matches!(self.peek_parola_a(0), Some("a" | "al" | "in" | "sopra" | "sotto")) {
                 if posizione.is_some() {
@@ -575,18 +581,8 @@ impl<'a> Frase<'a> {
                     });
                 }
                 "colore" => stile.colore = self.colore()?,
-                "opacita" => stile.opacita = self.numero("l'opacità")?,
-                "scala" => stile.scala = self.numero_dopo("scala")?,
-                "rotazione" => {
-                    stile.rotazione = self.numero_dopo("rotazione")?;
-                    self.accetta_una(&["gradi", "grado"]);
-                }
-                "livello" => {
-                    let n = self.numero("il livello")?;
-                    if n.fract() != 0.0 || n.abs() > 1_000_000.0 {
-                        return Err(self.errore("il livello deve essere un numero intero"));
-                    }
-                    stile.livello = n as i32;
+                "opacita" | "scala" | "rotazione" | "livello" => {
+                    self.proprieta_stile(parola, &mut stile)?;
                 }
                 "bordo" => {
                     let spessore = self.numero("lo spessore del bordo")?;
@@ -611,6 +607,116 @@ impl<'a> Frase<'a> {
             forma,
             stile,
             posizione: posizione.unwrap_or(Posizione::Palco(Ancora::Centro)),
+            riga: self.riga,
+        })
+    }
+
+    /// Errore per la posizione `dentro a`, rimossa dalla v0.2 (SPECIFICA B.3.1).
+    fn errore_dentro(&self) -> Errore {
+        self.errore("la posizione «dentro a» non esiste: i membri si elencano nella frase del gruppo")
+            .con_suggerimento("es. «Crea un gruppo chiamato \"g\" con \"a\" e \"b\".»")
+    }
+
+    /// Proprietà di stile condivise da attori e gruppi (`opacità`, `scala`, `rotazione`,
+    /// `livello`): `parola` è già stata consumata.
+    fn proprieta_stile(&mut self, parola: &str, stile: &mut Stile) -> Risultato<()> {
+        match parola {
+            "opacita" => stile.opacita = self.numero("l'opacità")?,
+            "scala" => stile.scala = self.numero_dopo("scala")?,
+            "rotazione" => {
+                stile.rotazione = self.numero_dopo("rotazione")?;
+                self.accetta_una(&["gradi", "grado"]);
+            }
+            _ => {
+                let n = self.numero("il livello")?;
+                if n.fract() != 0.0 || n.abs() > 1_000_000.0 {
+                    return Err(self.errore("il livello deve essere un numero intero"));
+                }
+                stile.livello = n as i32;
+            }
+        }
+        Ok(())
+    }
+
+    /// Resto della frase del gruppo, dopo `Crea un gruppo chiamato "NOME"` (SPECIFICA B.3.2):
+    /// `con "A", "B" e "C" [PROPRIETÀ]`. I membri sono tutti subito dopo `con`, separati da
+    /// `,` o `e`; la lista finisce al primo elemento che non è una stringa.
+    fn gruppo(&mut self, nome: String) -> Risultato<Attore> {
+        let es = "es. «Crea un gruppo chiamato \"g\" con \"a\" e \"b\".»";
+        if self.peek_parola_a(0) == Some("dentro") {
+            return Err(self.errore_dentro());
+        }
+        let mut membri: Vec<String> = Vec::new();
+        if self.accetta("con") {
+            while let Some(Token::Stringa(s)) = self.peek() {
+                self.pos += 1;
+                let membro = s.trim().to_string();
+                if membro.is_empty() {
+                    return Err(self.errore("il nome di un membro del gruppo non può essere vuoto"));
+                }
+                membri.push(membro);
+                self.virgola_opzionale();
+                self.accetta_una(&["e", "ed"]);
+            }
+        }
+        if membri.is_empty() {
+            return Err(self
+                .errore(format!("il gruppo \"{nome}\" deve contenere almeno un membro"))
+                .con_suggerimento(es));
+        }
+
+        let mut stile = Stile::default();
+        while !self.finita() {
+            if matches!(self.peek(), Some(Token::Virgola)) {
+                self.pos += 1;
+                continue;
+            }
+            if self.accetta_una(&["e", "ed", "con"]).is_some() {
+                continue;
+            }
+            let parola = match self.peek() {
+                Some(Token::Parola(w)) => {
+                    self.pos += 1;
+                    w.as_str()
+                }
+                Some(Token::Stringa(_)) => {
+                    return Err(self
+                        .errore("i membri del gruppo vanno elencati tutti subito dopo «con»")
+                        .con_suggerimento(es));
+                }
+                _ => return Err(self.errore(format!("non capisco {} in questa frase", self.trovato()))),
+            };
+            match parola {
+                "opacita" | "scala" | "rotazione" | "livello" => {
+                    self.proprieta_stile(parola, &mut stile)?;
+                }
+                "dentro" => return Err(self.errore_dentro()),
+                "a" | "al" | "in" | "sopra" | "sotto" => {
+                    return Err(self
+                        .errore("un gruppo non ha una posizione propria: il suo centro è calcolato dai membri")
+                        .con_suggerimento(
+                            "sposta i membri, oppure anima il gruppo con «si sposta a»",
+                        ));
+                }
+                altro if PROPRIETA.contains(&altro) || ["ombra", "sfocatura"].contains(&altro) => {
+                    return Err(self
+                        .errore(format!("la proprietà «{altro}» non si applica a un gruppo"))
+                        .con_suggerimento("assegnala ai singoli membri"));
+                }
+                altro => {
+                    let mut e = self.errore(format!("proprietà sconosciuta «{altro}»"));
+                    if let Some(s) = suggerisci(altro, &["opacita", "livello", "scala", "rotazione"]) {
+                        e = e.con_suggerimento(format!("forse intendevi «{s}»?"));
+                    }
+                    return Err(e);
+                }
+            }
+        }
+        Ok(Attore {
+            nome,
+            forma: Forma::Gruppo { membri },
+            stile,
+            posizione: Posizione::Palco(Ancora::Centro),
             riga: self.riga,
         })
     }
@@ -902,11 +1008,38 @@ impl<'a> Frase<'a> {
                     self.richiedi("a", "dopo «cambia opacità» (es. «cambia opacità a 0.5»)")?;
                     Ok(Verbo::CambiaOpacita(self.numero("l'opacità")?))
                 }
-                Some(_) => Err(self.non_supportato("il verbo «cambia colore»")),
+                Some(_) => {
+                    if !self.accetta("in") {
+                        return Err(self
+                            .errore(format!(
+                                "mi aspettavo «in» dopo «cambia colore», ma ho trovato {}",
+                                self.trovato()
+                            ))
+                            .con_suggerimento("es. «\"sole\" cambia colore in rosso.»"));
+                    }
+                    Ok(Verbo::CambiaColore(self.colore()?))
+                }
                 None => Err(self
                     .errore(format!("non so cosa cambiare: {}", self.trovato()))
-                    .con_suggerimento("usa «cambia opacità a 0.5»")),
+                    .con_suggerimento("usa «cambia opacità a 0.5» o «cambia colore in rosso»")),
             },
+            "entra" => {
+                if self.accetta_una(&["da", "dal", "dall", "dalla"]).is_none() {
+                    return Err(self
+                        .errore(format!("mi aspettavo «da» dopo «entra», ma ho trovato {}", self.trovato()))
+                        .con_suggerimento("es. «\"titolo\" entra da sinistra.»"));
+                }
+                Ok(Verbo::EntraDa(self.direzione_bordo()?))
+            }
+            "esce" => {
+                if !self.accetta("verso") {
+                    return Err(self
+                        .errore(format!("mi aspettavo «verso» dopo «esce», ma ho trovato {}", self.trovato()))
+                        .con_suggerimento("es. «\"titolo\" esce verso destra.»"));
+                }
+                Ok(Verbo::EsceVerso(self.direzione_bordo()?))
+            }
+            "orbita" => self.orbita(),
             altro if VERBI_FUTURI.contains(&altro) => {
                 Err(self.non_supportato(&format!("il verbo «{altro}»")))
             }
@@ -917,11 +1050,66 @@ impl<'a> Frase<'a> {
                 Err(match suggerisci(altro, &candidati) {
                     Some(s) => e.con_suggerimento(format!("forse intendevi «{s}»?")),
                     None => e.con_suggerimento(
-                        "verbi disponibili: appare sfumando, scompare sfumando, si sposta a, scivola verso, ruota di, si ingrandisce, si rimpicciolisce, pulsa, cambia opacità",
+                        "verbi disponibili: appare sfumando, scompare sfumando, si sposta a, scivola verso, ruota di, si ingrandisce, si rimpicciolisce, pulsa, cambia opacità, cambia colore, entra da, esce verso, orbita attorno a",
                     ),
                 })
             }
         }
+    }
+
+    /// Lato per `entra da` / `esce verso` (SPECIFICA B.2): `sinistra`, `destra`, `alto`, `basso`.
+    fn direzione_bordo(&mut self) -> Risultato<Direzione> {
+        const LATI: &[&str] = &["sinistra", "destra", "alto", "basso"];
+        match self.accetta_una(LATI) {
+            Some("alto") => Ok(Direzione::Alto),
+            Some("basso") => Ok(Direzione::Basso),
+            Some("destra") => Ok(Direzione::Destra),
+            Some(_) => Ok(Direzione::Sinistra),
+            None => {
+                let e = self.errore(format!("direzione non valida: {}", self.trovato()));
+                Err(match self.peek_parola_a(0).and_then(|p| suggerisci(p, LATI)) {
+                    Some(s) => e.con_suggerimento(format!("usa sinistra, destra, alto o basso; forse intendevi «{s}»?")),
+                    None => e.con_suggerimento("usa sinistra, destra, alto o basso"),
+                })
+            }
+        }
+    }
+
+    /// `orbita attorno a "ALTRO" con raggio N per GIRI giri [in senso orario|antiorario]`
+    /// (SPECIFICA B.4.1). La clausola `con movimento` finale è letta da [`Self::easing_opzionale`]:
+    /// qui `con` è sempre seguito da `raggio`, quindi non c'è ambiguità.
+    fn orbita(&mut self) -> Risultato<Verbo> {
+        let es = "es. «\"luna\" orbita attorno a \"terra\" con raggio 40 per 2 giri.»";
+        self.richiedi("attorno", "dopo «orbita»")?;
+        self.richiedi("a", "dopo «orbita attorno»")?;
+        let centro = self.stringa("l'attore attorno a cui orbitare")?.trim().to_string();
+        if !(self.accetta("con") && self.accetta("raggio")) {
+            return Err(self
+                .errore(format!("mi aspettavo «con raggio» dopo il nome, ma ho trovato {}", self.trovato()))
+                .con_suggerimento(es));
+        }
+        let raggio = self.numero_dopo("raggio")?;
+        self.richiedi("per", "dopo il raggio (es. «per 2 giri»)")?;
+        let giri = self.numero("il numero di giri")?;
+        if self.accetta_una(&["giri", "giro"]).is_none() {
+            return Err(self
+                .errore(format!("mi aspettavo «giri» dopo il numero di giri, ma ho trovato {}", self.trovato()))
+                .con_suggerimento(es));
+        }
+        let mut orario = false;
+        if self.accetta("in") {
+            self.richiedi("senso", "dopo «in» (es. «in senso orario»)")?;
+            orario = match self.accetta_una(&["orario", "antiorario"]) {
+                Some("orario") => true,
+                Some(_) => false,
+                None => {
+                    return Err(self
+                        .errore(format!("verso non valido: {}", self.trovato()))
+                        .con_suggerimento("usa «in senso orario» oppure «in senso antiorario»"));
+                }
+            };
+        }
+        Ok(Verbo::Orbita { centro, raggio, giri, orario })
     }
 
     /// `pulsa [con intensità I | I] [a ritmo R]`
@@ -1055,5 +1243,125 @@ impl Proprieta {
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test_v02 {
+    use super::*;
+
+    const PALCO: &str = "Prepara un palco grande 800 per 600.\n";
+
+    fn azioni(righe: &str) -> Vec<Azione> {
+        let src = format!("{PALCO}Dal secondo 0 al secondo 2:\n{righe}\n");
+        let p = analizza(&src).expect("sorgente valido");
+        p.timeline.blocchi.into_iter().flat_map(|b| b.azioni).collect()
+    }
+
+    fn errore(src: &str) -> String {
+        analizza(&format!("{PALCO}{src}\n")).expect_err("errore atteso").to_string()
+    }
+
+    #[test]
+    fn entra_ed_esce_con_preposizioni_articolate() {
+        for (frase, dir) in [
+            ("\"t\" entra dall'alto.", Direzione::Alto),
+            ("\"t\" entra dal basso.", Direzione::Basso),
+            ("\"t\" entra dalla destra.", Direzione::Destra),
+            ("\"t\" entra da sinistra.", Direzione::Sinistra),
+        ] {
+            let a = azioni(&format!("  {frase}"));
+            assert_eq!(a[0].verbo, Verbo::EntraDa(dir));
+        }
+        let a = azioni("  \"s\" esce verso destra.");
+        assert_eq!(a[0].verbo, Verbo::EsceVerso(Direzione::Destra));
+        let a = azioni("  \"s\" esce verso l'alto.");
+        assert_eq!(a[0].verbo, Verbo::EsceVerso(Direzione::Alto));
+    }
+
+    #[test]
+    fn entra_concatenato_con_movimento() {
+        let a = azioni("  \"p\" entra da sinistra e appare sfumando con movimento scatto.");
+        assert_eq!(a.len(), 2);
+        assert_eq!(a[0].verbo, Verbo::EntraDa(Direzione::Sinistra));
+        assert_eq!(a[1].verbo, Verbo::AppareSfumando);
+        assert_eq!(a[0].easing, Easing::Scatto);
+        let a = azioni("  \"t\" entra dall'alto con movimento scatto.");
+        assert_eq!(a[0].easing, Easing::Scatto);
+    }
+
+    #[test]
+    fn errori_entra_esce() {
+        assert!(errore("Dal secondo 0 al secondo 1:\n  \"t\" entra sinistra.").contains("mi aspettavo «da» dopo «entra»"));
+        assert!(errore("Dal secondo 0 al secondo 1:\n  \"t\" esce destra.").contains("mi aspettavo «verso» dopo «esce»"));
+        assert!(errore("Dal secondo 0 al secondo 1:\n  \"t\" entra da sinsitra.").contains("direzione non valida"));
+    }
+
+    #[test]
+    fn orbita_orario_antiorario_e_movimento() {
+        let a = azioni("  \"luna\" orbita attorno a \"terra\" con raggio 40 per 0.5 giri in senso orario.");
+        assert_eq!(
+            a[0].verbo,
+            Verbo::Orbita { centro: "terra".into(), raggio: 40.0, giri: 0.5, orario: true }
+        );
+        let a = azioni("  \"t\" orbita attorno a \"sole\" con raggio 200 per 2 giri con movimento lineare.");
+        assert_eq!(
+            a[0].verbo,
+            Verbo::Orbita { centro: "sole".into(), raggio: 200.0, giri: 2.0, orario: false }
+        );
+        assert_eq!(a[0].easing, Easing::Lineare);
+        let a = azioni("  \"t\" orbita attorno a \"s\" con raggio 5 per 1 giro in senso antiorario e appare sfumando.");
+        assert_eq!(a.len(), 2);
+        assert!(matches!(a[0].verbo, Verbo::Orbita { orario: false, .. }));
+    }
+
+    #[test]
+    fn cambia_colore() {
+        let a = azioni("  \"sole\" cambia colore in #FDE68A con movimento morbido.");
+        assert_eq!(a[0].verbo, Verbo::CambiaColore(Colore { r: 0xFD, g: 0xE6, b: 0x8A, a: 1.0 }));
+        let a = azioni("  \"titolo\" cambia colore in rosso e scivola verso basso di 20.");
+        assert_eq!(a[0].verbo, Verbo::CambiaColore(Colore::rgb(255, 0, 0)));
+        assert!(matches!(a[1].verbo, Verbo::Scivola { .. }));
+        assert!(errore("Dal secondo 0 al secondo 1:\n  \"s\" cambia colore rosso.").contains("mi aspettavo «in» dopo «cambia colore»"));
+        assert!(errore("Dal secondo 0 al secondo 1:\n  \"s\" cambia colore in rossso.").contains("colore sconosciuto"));
+    }
+
+    fn gruppo(frase: &str) -> Attore {
+        let p = analizza(&format!("{PALCO}{frase}\n")).expect("sorgente valido");
+        p.attori.into_iter().next().expect("un attore")
+    }
+
+    #[test]
+    fn gruppo_membri_e_proprieta() {
+        let g = gruppo("Crea un gruppo chiamato \"logo\" con \"j\", \"o\" e \"y\".");
+        assert_eq!(g.forma, Forma::Gruppo { membri: vec!["j".into(), "o".into(), "y".into()] });
+        assert_eq!(g.posizione, Posizione::Palco(Ancora::Centro));
+        assert_eq!(g.stile, Stile::default());
+
+        let g = gruppo("Crea un gruppo chiamato \"s\" con \"sole\" e \"terra\", scala 0.8 e livello 1.");
+        assert_eq!(g.forma, Forma::Gruppo { membri: vec!["sole".into(), "terra".into()] });
+        assert_eq!(g.stile.scala, 0.8);
+        assert_eq!(g.stile.livello, 1);
+
+        let g = gruppo("Crea un gruppo chiamato \"sc\" con \"sistema\", \"titolo\" e opacità 0.9.");
+        assert_eq!(g.forma, Forma::Gruppo { membri: vec!["sistema".into(), "titolo".into()] });
+        assert_eq!(g.stile.opacita, 0.9);
+
+        let g = gruppo("Crea un gruppo chiamato \"x\" con \"a\" rotazione 30 gradi.");
+        assert_eq!(g.stile.rotazione, 30.0);
+    }
+
+    #[test]
+    fn gruppo_errori_sintattici() {
+        assert!(errore("Crea un gruppo chiamato \"g\".").contains("deve contenere almeno un membro"));
+        assert!(errore("Crea un gruppo chiamato \"g\" con scala 2.").contains("deve contenere almeno un membro"));
+        assert!(errore("Crea un gruppo chiamato \"g\" con \"a\" e scala 2 e \"b\".")
+            .contains("tutti subito dopo «con»"));
+        assert!(errore("Crea un gruppo chiamato \"g\" con \"a\" al centro.").contains("non ha una posizione propria"));
+        assert!(errore("Crea un gruppo chiamato \"g\" con \"a\" in alto.").contains("non ha una posizione propria"));
+        assert!(errore("Crea un gruppo chiamato \"g\" con \"a\" e colore rosso.")
+            .contains("la proprietà «colore» non si applica a un gruppo"));
+        assert!(errore("Crea un gruppo chiamato \"g\" dentro a \"h\".").contains("«dentro a» non esiste"));
+        assert!(errore("Crea un cerchio chiamato \"c\" dentro a \"h\".").contains("«dentro a» non esiste"));
     }
 }
