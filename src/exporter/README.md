@@ -23,6 +23,9 @@ Collega la pipeline al file system.
   `compila_misurando`, che restituisce anche i conteggi di `ScenaCompilata`), preparazione,
   avvio del browser, connessione CDP, caricamento pagina, avvio di ffmpeg, ciclo dei fotogrammi,
   chiusura del browser, finalizzazione di ffmpeg, pubblicazione e totale.
+- Cattura: `Page.captureScreenshot` usa `optimizeForSpeed: true` (costante `PARAMETRI_SCREENSHOT`,
+  B.9.5). La compressione PNG del browser è più rapida e senza perdita: i pixel sono identici, i
+  PNG sono più grandi (circa +38%). Misure in `benches/README.md`.
 - Per fotogramma (solo con profilo): `seek`, `screenshot` (misura combinata), `base64`,
   `verifica_png` e `attesa_coda` (attorno a `Ffmpeg::invia`), in µs. `Statistica::da_microsecondi`
   calcola media, p50, p95 e max con il rango nearest-rank.

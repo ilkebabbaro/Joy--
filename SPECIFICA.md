@@ -1134,7 +1134,8 @@ Il client minimale comprende (stima ≤ 800 righe, tutte con test unitari):
       dove `T` è `t_k` (finito per costruzione) formattato da Rust con `{}`. Il risultato è il
       letterale numerico più corto e senza esponente, valido in JS. Se ci sono `exceptionDetails`,
       o se il valore restituito differisce da `t_k` di più di `10⁻⁶`, è un errore;
-    * `Page.captureScreenshot {"format":"png","fromSurface":true,"captureBeyondViewport":false}`.
+    * `Page.captureScreenshot {"format":"png","fromSurface":true,"captureBeyondViewport":false,"optimizeForSpeed":true}`
+      (C.2: compressione PNG più rapida e senza perdita; pixel identici a parità di superficie).
       Il campo `data` viene decodificato da base64. Si verifica la firma PNG e che l'intestazione
       `IHDR` dica `W × H`, altrimenti è un errore (ad esempio un ridimensionamento DPI imprevisto);
     * i byte PNG vengono scritti nello stdin di ffmpeg (B.9.6).
@@ -1145,7 +1146,10 @@ Il client minimale comprende (stima ≤ 800 righe, tutte con test unitari):
 canale limitato a 4 fotogrammi, così cattura e codifica si sovrappongono. L'ordine dei fotogrammi
 deve restare quello di `k` e la memoria resta limitata.
 
-**Determinismo:** a parità di sorgente, browser e ffmpeg, i fotogrammi sono identici. Il file `.mp4`
+**Determinismo:** a parità di sorgente, browser e ffmpeg, i fotogrammi **non sono garantiti identici**:
+tra esecuzioni diverse alcuni fotogrammi possono differire in modo intermittente (fino a 95 livelli su
+circa 8400 pixel a 720p, con fase inferiore a un fotogramma). Il problema è aperto: è citato nel backlog
+v0.2.2 (`docs/BACKLOG_V022.md`, P1) e documentato in `benches/README.md`. Il file `.mp4`
 non è garantito identico byte per byte tra versioni diverse di browser o ffmpeg.
 
 #### B.9.6 ffmpeg (`@exporter`)
@@ -1560,3 +1564,26 @@ righe stimate dicono esplicitamente «(stima)»; quelle non disponibili «non di
 * **R3.** I permessi di scrittura del percorso JSON non sono verificati prima del render.
 * **A1.** `json::stringa` non applica l'escape a `<` né a U+2028/U+2029. Il JSON del profilo quindi non
   va incorporato in HTML senza un escape proprio.
+
+### C.2 Cattura veloce degli screenshot (`optimizeForSpeed`)
+
+**Decisione.** `Page.captureScreenshot` usa `"optimizeForSpeed": true` (parametri costanti in
+`PARAMETRI_SCREENSHOT`, B.9.5 passo 10). Il test `parametri_screenshot_fissi` blocca la stringa: cambiarla
+è una decisione di specifica.
+
+**Motivazione.** Nel render a 4K il costo dominante per fotogramma è la compressione PNG nel browser.
+`optimizeForSpeed` la rende più rapida, senza perdita di informazione.
+
+**Misure** (`benches/README.md`, sezione «Fase 3»; binario prima e dopo, 3 ripetizioni alternate):
+* tempo totale: -32,7% sulla cattedrale 4K (`--fps 6`), -32,6% su voxel 4K (`--fps 4`), -2,9% su
+  livello1 720p;
+* ciclo per fotogramma: -21% … -35% a 4K;
+* costo: i PNG sono circa il 38% più grandi, quindi più byte sulla pipe verso ffmpeg;
+* affidabilità: 0 errori e 0 timeout in 18 render.
+
+**Criterio di correttezza.** Identità dei pixel decodificati sulla stessa superficie: 720 coppie V0/V1 su
+720 con 0 pixel diversi. Non è un criterio di identità dei byte del `.mp4`.
+
+**Limite.** Due render dello stesso binario non sono identici bit a bit: esiste un non determinismo
+preesistente del rendering della pagina (B.9.5, «Determinismo»; backlog v0.2.2, P1). Il confronto prima e
+dopo non prova quindi l'equivalenza bit a bit dei video.

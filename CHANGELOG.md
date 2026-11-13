@@ -18,6 +18,9 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 - Il JSON è scritto in modo atomico (`<file>.joypp-parziale`, poi rinomina); il parziale viene rimosso in caso di errore.
 - Il profilo non contiene percorsi di file né di eseguibili.
 
+### Modificato
+- `joypp render` cattura gli screenshot con `optimizeForSpeed`: circa il 33% più veloce a 4K, neutro a 720p, stessi pixel (SPECIFICA C.2).
+
 ## [0.2.1] - 2026-11-13
 
 Patch: `appare sfumando` su un attore con `opacità 0` ora lo rende visibile; nuovo avviso sulle opacità che non cambiano nulla.

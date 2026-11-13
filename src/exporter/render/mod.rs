@@ -37,6 +37,13 @@ use profilo::{
 pub const FPS_PREDEFINITO: u32 = 60;
 /// CRF predefinito.
 pub const CRF_PREDEFINITO: u8 = 18;
+/// Parametri di `Page.captureScreenshot` (SPECIFICA B.9.5; misure della Fase 3 in
+/// `benches/README.md`). `optimizeForSpeed` rende la compressione PNG del browser più rapida,
+/// senza perdita: i pixel decodificati sono identici, i file sono più grandi (circa +38%). Il
+/// ciclo per fotogramma scende del 21-35% a 4K. Cambiare questa stringa è una decisione di
+/// specifica: il test `parametri_screenshot_fissi` la blocca.
+const PARAMETRI_SCREENSHOT: &str =
+    "{\"format\":\"png\",\"fromSurface\":true,\"captureBeyondViewport\":false,\"optimizeForSpeed\":true}";
 
 /// Opzioni del video.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -601,7 +608,7 @@ fn cattura(
         s,
         b,
         "Page.captureScreenshot",
-        "{\"format\":\"png\",\"fromSurface\":true,\"captureBeyondViewport\":false}",
+        PARAMETRI_SCREENSHOT,
         &ctx,
     )?;
     registra(campioni, |c| &mut c.screenshot, inizio.elapsed());
@@ -921,6 +928,14 @@ mod test {
         let mut senza_ihdr = png;
         senza_ihdr[12] = b'X';
         assert!(dimensioni_png(&senza_ihdr).is_err());
+    }
+
+    #[test]
+    fn parametri_screenshot_fissi() {
+        assert_eq!(
+            PARAMETRI_SCREENSHOT,
+            "{\"format\":\"png\",\"fromSurface\":true,\"captureBeyondViewport\":false,\"optimizeForSpeed\":true}"
+        );
     }
 
     #[test]
