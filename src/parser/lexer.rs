@@ -73,6 +73,15 @@ fn e_apostrofo(c: char) -> bool {
 ///
 /// `riga` è il numero di riga usato nei messaggi d'errore.
 pub fn tokenizza(testo: &str, riga: usize) -> Risultato<Vec<Token>> {
+    // Sicurezza: i caratteri di controllo (es. ESC) verrebbero ristampati nei messaggi
+    // d'errore e potrebbero manipolare il terminale. Si rifiutano subito, mostrandone il codice.
+    if let Some(c) = testo.chars().find(|c| c.is_control() && *c != '\t') {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("carattere di controllo non ammesso ({})", c.escape_unicode()),
+        )
+        .con_suggerimento("rimuovi il carattere invisibile dalla riga"));
+    }
     let caratteri: Vec<char> = testo.chars().collect();
     let mut token = Vec::new();
     let mut i = 0;

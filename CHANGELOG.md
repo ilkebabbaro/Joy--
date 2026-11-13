@@ -6,6 +6,13 @@ progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Sicurezza
+- Il lexer rifiuta i caratteri di controllo (es. sequenze ANSI `ESC`) che verrebbero
+  ristampati nei messaggi d'errore sul terminale.
+- I suggerimenti "forse intendevi" hanno un limite di lunghezza e un pre-filtro, per evitare
+  costi quadratici su input enormi.
+- Nome degli attori limitato a 100 caratteri.
+
 ### Aggiunto
 - CLI `joypp <file.joy> [-o file.html] [--pretty] [--watch]` ed exporter (`src/exporter`):
   limite di dimensione del sorgente, controllo UTF-8, protezione contro la sovrascrittura

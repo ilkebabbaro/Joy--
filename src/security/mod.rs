@@ -23,6 +23,8 @@ pub mod limiti {
     pub const MAX_KEYFRAME: usize = 10_000;
     /// Lunghezza massima di un testo, in caratteri.
     pub const MAX_LUNGHEZZA_TESTO: usize = 10_000;
+    /// Lunghezza massima del nome di un attore, in caratteri.
+    pub const MAX_LUNGHEZZA_NOME: usize = 100;
     /// Lunghezza massima del nome di un font, in caratteri.
     pub const MAX_LUNGHEZZA_FONT: usize = 64;
     /// Fattore di scala massimo.

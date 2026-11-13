@@ -267,6 +267,12 @@ pub fn compila(programma: &Programma) -> Risultato<ScenaCompilata> {
 /// Verifica i valori di un attore rispetto ai limiti di sicurezza.
 fn valida_attore(attore: &Attore) -> Risultato<()> {
     let riga = attore.riga;
+    if attore.nome.chars().count() > limiti::MAX_LUNGHEZZA_NOME {
+        return Err(Errore::alla_riga(
+            riga,
+            format!("il nome dell'attore è troppo lungo (massimo {} caratteri)", limiti::MAX_LUNGHEZZA_NOME),
+        ));
+    }
     let dimensione = |nome: &str, v: f64| -> Risultato<()> {
         if (0.0..=limiti::MAX_DIMENSIONE).contains(&v) {
             Ok(())

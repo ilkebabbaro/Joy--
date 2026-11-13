@@ -216,11 +216,22 @@ fn distanza(a: &str, b: &str) -> usize {
     precedente.last().copied().unwrap_or(usize::MAX)
 }
 
+/// Lunghezza massima di una parola per cui si calcolano suggerimenti
+/// (sicurezza: evita costi quadratici su input enormi).
+const MAX_LUNGHEZZA_SUGGERIMENTO: usize = 64;
+
 /// Restituisce il candidato più simile a `parola`, se abbastanza vicino.
 pub fn suggerisci<'a>(parola: &str, candidati: &[&'a str]) -> Option<&'a str> {
-    let soglia = (parola.chars().count() / 3).clamp(1, 3);
+    let lunghezza = parola.chars().count();
+    if lunghezza > MAX_LUNGHEZZA_SUGGERIMENTO {
+        return None;
+    }
+    let soglia = (lunghezza / 3).clamp(1, 3);
     candidati
         .iter()
+        // Pre-filtro economico: se le lunghezze differiscono più della soglia,
+        // la distanza di Levenshtein non può essere entro la soglia.
+        .filter(|c| c.chars().count().abs_diff(lunghezza) <= soglia)
         .map(|c| (distanza(parola, c), *c))
         .filter(|(d, _)| *d <= soglia)
         .min_by_key(|(d, _)| *d)
@@ -511,12 +522,12 @@ impl<'a> Frase<'a> {
                 posizione = Some(self.posizione()?);
                 continue;
             }
-            let parola = match self.avanza() {
-                Some(Token::Parola(w)) => w.as_str(),
-                _ => {
-                    self.pos -= 1;
-                    return Err(self.errore(format!("non capisco {} in questa frase", self.trovato())));
+            let parola = match self.peek() {
+                Some(Token::Parola(w)) => {
+                    self.pos += 1;
+                    w.as_str()
                 }
+                _ => return Err(self.errore(format!("non capisco {} in questa frase", self.trovato()))),
             };
             match parola {
                 "raggio" => p.raggio = Some(self.numero("il raggio")?),
