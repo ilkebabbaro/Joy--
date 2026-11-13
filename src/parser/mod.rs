@@ -199,21 +199,32 @@ fn richiedi_palco(palco: &Option<Palco>, riga: usize) -> Risultato<()> {
     Ok(())
 }
 
-/// Distanza di Levenshtein tra due stringhe (per i suggerimenti).
+/// Distanza di Damerau-Levenshtein (variante OSA) tra due stringhe, per i suggerimenti.
+///
+/// Rispetto a Levenshtein, lo scambio di due lettere adiacenti (`sloe` → `sole`),
+/// errore di battitura molto comune, costa 1 invece di 2.
 fn distanza(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
-    let mut precedente: Vec<usize> = (0..=b.len()).collect();
-    for (i, ca) in a.chars().enumerate() {
-        let mut corrente = vec![i + 1; b.len() + 1];
-        for (j, cb) in b.iter().enumerate() {
-            let costo = usize::from(ca != *cb);
-            corrente[j + 1] = (precedente[j] + costo)
-                .min(precedente[j + 1] + 1)
-                .min(corrente[j] + 1);
-        }
-        precedente = corrente;
+    // d[i][j] = distanza tra i primi i caratteri di `a` e i primi j di `b`.
+    let mut d = vec![vec![0usize; b.len() + 1]; a.len() + 1];
+    for (i, riga) in d.iter_mut().enumerate() {
+        riga[0] = i;
     }
-    precedente.last().copied().unwrap_or(usize::MAX)
+    for (j, cella) in d[0].iter_mut().enumerate() {
+        *cella = j;
+    }
+    for i in 1..=a.len() {
+        for j in 1..=b.len() {
+            let costo = usize::from(a[i - 1] != b[j - 1]);
+            let mut v = (d[i - 1][j] + 1).min(d[i][j - 1] + 1).min(d[i - 1][j - 1] + costo);
+            if i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1] {
+                v = v.min(d[i - 2][j - 2] + 1);
+            }
+            d[i][j] = v;
+        }
+    }
+    d[a.len()][b.len()]
 }
 
 /// Lunghezza massima di una parola per cui si calcolano suggerimenti

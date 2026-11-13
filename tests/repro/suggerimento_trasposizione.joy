@@ -1,0 +1,5 @@
+# atteso: errore riga 4
+# Regressione: "sloe" (lettere scambiate) non suggeriva "sole" (Levenshtein contava 2).
+Prepara un palco grande 100 per 100.
+Crea un cerchio chiamato "terra" a destra di "sloe" di 10.
+Crea un cerchio chiamato "sole".
