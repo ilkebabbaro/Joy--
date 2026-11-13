@@ -1,3 +1,4 @@
 /target
 # Output generati dal compilatore
 *.html
+*.mp4
