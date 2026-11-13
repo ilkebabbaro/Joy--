@@ -105,6 +105,7 @@ Nessun codice può essere considerato "finito" se non attraversa questa pipeline
      * *File modificati*
      * *Sintesi tecnica delle modifiche*
      * *Esito dei test (`cargo test`)*
+     * *Modello effettivo usato* (serve per il trailer `Co-Authored-By` del commit)
 5. **Audit Finale & Commit Automatico (`@auditor`):**
    * `@auditor` legge il report, verifica la coerenza tra codice e documentazione (`docs/` e `CHANGELOG.md`), e **esegue obbligatoriamente il commit su Git**.
 
@@ -124,6 +125,11 @@ Nessun codice può essere considerato "finito" se non attraversa questa pipeline
   * `sec(codegen): sanitizza caratteri HTML nei blocchi testo`
   * `docs(auditor): aggiorna SPECIFICA.md e CHANGELOG per v0.1`
   * `test(debugger): aggiunge test di regressione per timeline annidate`
+* **Trailer `Co-Authored-By` obbligatorio:** ogni commit deve terminare con una o più righe `Co-Authored-By:` che indicano il modello REALE del sub-agente (o dei sub-agenti) che ha svolto il lavoro committato. Se il lavoro è di più sub-agenti, va una riga per modello, senza duplicati. Formato esatto, uno per riga:
+  * `Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>`
+  * `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`
+  * `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
+  * Esempi: un commit dell'auditor che committa solo lavoro proprio usa Haiku; un commit che contiene una specifica scritta da `@compiler` e documentazione dell'auditor usa Opus e Haiku.
 
 ---
 
