@@ -747,11 +747,12 @@ proposte: cambiarle richiede una nuova approvazione.
 7. **L'esempio del §7 resta non valido** anche con la v0.2 (nota di B.8). *Confermato dall'utente.*
    Il §7 non viene modificato.
 
-**Questioni ancora aperte** (nate da B.9):
-1. **`--fps` predefinito e intestazione `a [FPS] fotogrammi` (§2).** Per decisione dell'utente il
-   predefinito di `joypp render` è 60, qualunque cosa dica l'intestazione (B.9.1). Da decidere se,
-   quando l'intestazione dichiara `a N fotogrammi` e `--fps` manca, il video debba usare N. Fino ad
-   allora l'intestazione non ha effetto sul render.
+8. **`--fps` predefinito e intestazione `a [FPS] fotogrammi` (§2)** (nata da B.9). *Confermato
+   dall'utente.* Il predefinito di `joypp render` segue il valore `a N fotogrammi` dell'intestazione
+   del palco; se l'intestazione non lo dichiara, è 60. Il flag `--fps` lo sovrascrive sempre
+   (precedenza in B.9.1).
+
+Non restano questioni aperte in questa appendice.
 
 ---
 
@@ -833,9 +834,21 @@ joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N]
 | Opzione | Valori ammessi | Predefinito |
 |---------|----------------|-------------|
 | `-o`, `--output <file>` | qualsiasi percorso | il sorgente con estensione `.mp4` (`video.joy` → `video.mp4`) |
-| `--fps <N>` | intero da 1 a 240 | `60` |
+| `--fps <N>` | intero da 1 a 240 | il valore `a N fotogrammi` dell'intestazione del palco (§2); se l'intestazione non lo dichiara, `60` |
 | `--crf <N>` | intero da 0 a 51 (0 = senza perdita, 51 = qualità minima) | `18` |
 | `-h`, `--help` / `-V`, `--version` | — | come nella forma normale |
+
+* **Fotogrammi al secondo del video** (decisione confermata dall'utente, B.7), in ordine di
+  precedenza:
+  1. `--fps N`, se presente: **sovrascrive sempre** l'intestazione;
+  2. altrimenti il valore `a N fotogrammi` dell'intestazione del palco (§2), cioè `ScenaCompilata::fps`;
+  3. altrimenti `60`.
+
+  L'intestazione ammette già solo interi da 1 a 240 (errore del parser «i fotogrammi al secondo
+  devono essere un intero tra 1 e 240»), lo stesso intervallo di `--fps`: il valore che ne deriva è
+  sempre valido e non richiede altri controlli. Esempio: con `Prepara un palco grande 640 per 360 a 30
+  fotogrammi.`, `joypp render scena.joy` produce un video a 30 fps e
+  `joypp render scena.joy --fps 60` uno a 60 fps.
 
 * I valori di `--fps` e `--crf` sono interi decimali composti solo da cifre (`0`-`9`, zeri iniziali
   ammessi). Segno, punto decimale, spazi ed esponenti sono rifiutati (`--fps 29.97`, `--fps +30`,
@@ -847,8 +860,9 @@ joypp render <file.joy> [-o <file.mp4>] [--fps N] [--crf N]
   sola, e l'HTML intermedio è sempre compatto e senza player (B.9.4).
 * **Non ammesse senza `render`:** `--fps` e `--crf`.
 * Il video ha sempre le dimensioni del palco: non esiste un'opzione di risoluzione.
-* L'aiuto (`-h`) aggiunge una sezione `joypp render` con le tre opzioni, i predefiniti e le variabili
-  d'ambiente `JOYPP_BROWSER` e `JOYPP_FFMPEG`.
+* L'aiuto (`-h`) aggiunge una sezione `joypp render` con le tre opzioni, i predefiniti (per `--fps`:
+  «quello dell'intestazione, altrimenti 60») e le variabili d'ambiente `JOYPP_BROWSER` e
+  `JOYPP_FFMPEG`.
 
 #### B.9.2 `window.__joy_seek(ms)` nell'HTML (`@renderer`)
 **Emissione:** sempre, in ogni HTML generato: anche con `--senza-player`, anche con `--pretty`,
@@ -922,6 +936,8 @@ non legge `data-nome` né il contenuto dei testi. Non usa `eval`, `Function` o `
 #### B.9.3 Campionamento dei fotogrammi
 * `D` è la durata della scena in millisecondi, **lo stesso valore** emesso nell'HTML
   (`numero(durata × 1000)`, arrotondato a 4 decimali).
+* `fps` è il valore effettivo scelto con la precedenza di B.9.1: `--fps`, poi l'intestazione
+  `a N fotogrammi`, poi 60.
 * **Numero di fotogrammi:** `N = ⌈D × fps / 1000 − 10⁻⁹⌉ + 1`. Il termine `10⁻⁹` evita che un errore
   di virgola mobile aggiunga un fotogramma quando `D × fps / 1000` è intero.
 * **Tempo del fotogramma `k`** (`k = 0 … N−1`): `t_k = min(k × 1000 / fps, D)` ms, calcolato a
@@ -1148,7 +1164,7 @@ voce nel formato di `Errore` (`Errore: …` più l'eventuale `Suggerimento: …`
 * `per il video le dimensioni del palco devono essere intere (trovato 800.5 × 600)`;
 * `il palco è troppo grande per il video (massimo 8192 pixel per lato e 35389440 pixel in tutto)`;
 * `il video avrebbe troppi fotogrammi: N (massimo 216001)` (suggerimento: «riduci --fps o la durata
-  della scena»);
+  della scena»). Il controllo usa il `fps` effettivo (B.9.1), anche quando viene dall'intestazione;
 * `ffmpeg non trovato` (suggerimento: «installalo da https://ffmpeg.org e aggiungilo al PATH, oppure
   indica il percorso con la variabile d'ambiente JOYPP_FFMPEG»);
 * `JOYPP_FFMPEG indica «X», che non esiste` e `impossibile avviare ffmpeg («X»): <errore di sistema>`;
@@ -1190,7 +1206,7 @@ preesistente resta intatta.
 |----------|--------|--------|
 | `MAX_FPS_VIDEO` | 240 | intervallo di `--fps` |
 | `MAX_CRF` | 51 | intervallo di `--crf` (limite di libx264) |
-| `MAX_FOTOGRAMMI_VIDEO` | 216 001 | un'ora a 60 fps, ultimo fotogramma incluso: `MAX_DURATA_SCENA` (3600 s) resta esportabile al predefinito |
+| `MAX_FOTOGRAMMI_VIDEO` | 216 001 | un'ora a 60 fps, ultimo fotogramma incluso: `MAX_DURATA_SCENA` (3600 s) resta esportabile a 60 fps, il predefinito quando l'intestazione non dichiara `a N fotogrammi` |
 | `MAX_LATO_VIDEO` | 8192 | dimensioni finali, dopo il `pad` |
 | `MAX_PIXEL_VIDEO` | 35 389 440 (8192 × 4320) | dimensione massima di un fotogramma al livello H.264 6.2 |
 | `MAX_MESSAGGIO_CDP` | 256 MiB | messaggio WebSocket riassemblato (lo screenshot più grande in base64) |
@@ -1228,6 +1244,9 @@ preesistente resta intatta.
 * CLI: `render` come primo argomento, `./render` come file, `joypp --pretty render`, predefiniti di
   `-o`/`--fps`/`--crf`, limiti (`0`, `1`, `240`, `241`, `-1`, `29.97`, `+30`, `abc`), opzione
   ripetuta, opzioni vietate con e senza `render`, exit code 2.
+* Precedenza di `fps` (B.9.1, funzione pura): intestazione senza `a N fotogrammi` e senza `--fps` →
+  60; intestazione `a 30 fotogrammi` senza `--fps` → 30; intestazione `a 30 fotogrammi` con
+  `--fps 60` → 60.
 * Campionamento: la tabella di B.9.3, più la proprietà `t_{N−1} = D` e `t_k` strettamente crescente.
 * HTML: `__joy_seek` presente con e senza player, con `--pretty` e con durata 0. La costante `D` è
   corretta. Con un nome e un testo malevoli (`</script><script>alert(1)`) lo script di seek resta
@@ -1262,8 +1281,8 @@ un fallimento (per la CI). Casi:
 | Ruolo | Compito |
 |-------|---------|
 | `@renderer` | `__joy_seek` in `dom.rs` (sempre emessa), controllo `data-joy-render` nello script di adattamento, regola CSS e guardie del mini-player (B.5) in modalità render. |
-| `@exporter` | Sottocomando e aiuto in `main.rs`; in `src/exporter/render/` la ricerca degli eseguibili, i file temporanei, il client CDP minimale (WebSocket, JSON, base64), il campionamento, ffmpeg, il progresso e la rinomina finale. API indicativa: `OpzioniVideo { fps: u32, crf: u8 }`, `render_file(ingresso, uscita, &OpzioniVideo, progresso) -> Risultato<EsitoVideo>`. Aggiorna `src/exporter/README.md`. |
+| `@exporter` | Sottocomando e aiuto in `main.rs`; in `src/exporter/render/` la ricerca degli eseguibili, i file temporanei, il client CDP minimale (WebSocket, JSON, base64), il campionamento, ffmpeg, il progresso e la rinomina finale. API indicativa: `OpzioniVideo { fps: Option<u32>, crf: u8 }` (`None` = nessun `--fps`: si usa l'intestazione, altrimenti 60, B.9.1), `render_file(ingresso, uscita, &OpzioniVideo, progresso) -> Risultato<EsitoVideo>`. Aggiorna `src/exporter/README.md`. |
 | `@security` | Revisione di argomenti dei processi, espressioni CDP, URL, file temporanei, porta di debug e pulizia dello stderr; nuove costanti in `security::limiti` (B.9.7). |
 | `@debugger` | Test di B.9.9; file minimi in `tests/repro/` per ogni bug del render. |
-| `@compiler` | Nessuna modifica: la durata e le dimensioni del palco sono già in `ScenaCompilata`. |
+| `@compiler` | Nessuna modifica: la durata, le dimensioni del palco e i fotogrammi dichiarati (`fps: Option<u32>`) sono già in `ScenaCompilata`. |
 | `@auditor` | `CHANGELOG.md` (`[Unreleased]`: «nuovo comando `joypp render` per esportare MP4»), coerenza con questa sezione, commit. |
